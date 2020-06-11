@@ -230,7 +230,7 @@ namespace NCoreUtils.Videos.WebService
 
         public async Task Thumbnail(Uri source, Uri destination, ResizeOptions options, CancellationToken cancellationToken)
         {
-            await using var producer = new GCSProducer(_storageClient, source.Host, source.LocalPath);
+            await using var producer = new GCSProducer(_storageClient, source.Host, source.LocalPath.Trim('/'));
             var consumerFactory = new GoogleCloudStorageDestination(
                 uri: destination,
                 credential: default,
@@ -244,11 +244,11 @@ namespace NCoreUtils.Videos.WebService
 
         public async Task ResizeAsync(Uri source, Uri destination, VideoOptions options, CancellationToken cancellationToken)
         {
-            await using var producer = new GCSProducer(_storageClient, source.Host, source.LocalPath);
+            await using var producer = new GCSProducer(_storageClient, source.Host, source.LocalPath.Trim('/'));
             await using var consumer = new GCSConsumer(
                 _storageClient,
                 destination.Host,
-                destination.LocalPath,
+                destination.LocalPath.Trim('/'),
                 "video/mp4",
                 "public, max-age=31536000",
                 PredefinedObjectAcl.PublicRead
