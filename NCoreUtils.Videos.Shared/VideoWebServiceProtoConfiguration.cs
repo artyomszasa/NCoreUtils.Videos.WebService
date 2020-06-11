@@ -8,7 +8,11 @@ namespace NCoreUtils.Videos.Internal
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { ImmutableJsonConverterFactory.GetOrCreate<VideoOptions>() }
+            Converters =
+            {
+                ImmutableJsonConverterFactory.GetOrCreate<VideoOptions>(),
+                ImmutableJsonConverterFactory.GetOrCreate<Images.ResizeOptions>()
+            }
         };
 
         public static ServiceDescriptorBuilder ApplyVideoWebServiceDefaults(this ServiceDescriptorBuilder builder, string? path)
