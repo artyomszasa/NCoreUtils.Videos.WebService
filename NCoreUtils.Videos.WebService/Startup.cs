@@ -1,15 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NCoreUtils.AspNetCore;
 using NCoreUtils.Images;
 using NCoreUtils.Videos.Internal;
@@ -18,6 +17,14 @@ namespace NCoreUtils.Videos.WebService
 {
     public class Startup
     {
+        private sealed class ConfigureJson : IConfigureOptions<JsonSerializerOptions>
+        {
+            public void Configure(JsonSerializerOptions options)
+            {
+                options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            }
+        }
+
         private static ForwardedHeadersOptions ConfigureForwardedHeaders()
         {
             var opts = new ForwardedHeadersOptions();
@@ -60,6 +67,10 @@ namespace NCoreUtils.Videos.WebService
                 .AddHttpContextAccessor()
                 // http client factory
                 .AddHttpClient()
+                // JSON serialization
+                .AddOptions<JsonSerializerOptions>().Services
+                .ConfigureOptions<ConfigureJson>()
+                .AddTransient(serviceProvider => serviceProvider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>().CurrentValue)
                 // Google Cloud Storage client
                 .AddTransient(_ => storageClientAccessor())
                 // Video resizer implementation
