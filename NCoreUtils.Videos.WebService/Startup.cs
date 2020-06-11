@@ -62,6 +62,8 @@ namespace NCoreUtils.Videos.WebService
                 .AddHttpClient()
                 // Google Cloud Storage client
                 .AddTransient(_ => storageClientAccessor())
+                // Video resizer implementation
+                .AddSingleton<IVideoResizer, VideoResizer>()
                 // Image resizer client
                 .AddImageResizerClient(_configuration["Images:Endpoint"], true, true)
                 // CORS
