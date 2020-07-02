@@ -78,12 +78,15 @@ namespace NCoreUtils.Videos
 
         public int? Quality { get; }
 
-        public VideoOptions(string? videoType, int? width, int? height, int? quality)
+        public string? Watermark { get;}
+
+        public VideoOptions(string? videoType, int? width, int? height, int? quality, string? watermark)
         {
             VideoType = videoType;
             Width = width;
             Height = height;
             Quality = quality;
+            Watermark = watermark;
         }
 
         private bool TryToStringNoAlloc([NotNullWhen(true)] out string? result)
@@ -108,6 +111,10 @@ namespace NCoreUtils.Videos
             if (Quality.HasValue)
             {
                 if (!TryAppendProp(ref builder, ref first, nameof(Quality), Quality.Value)) { return false; }
+            }
+            if (!(Watermark is null))
+            {
+                if (!TryAppendProp(ref builder, ref first, nameof(Watermark), Watermark)) { return false; }
             }
             if (!builder.TryAppend(']')) { return false; }
             result = builder.ToString();
@@ -138,6 +145,10 @@ namespace NCoreUtils.Videos
             if (Quality.HasValue)
             {
                 AppendProp(builder, ref first, nameof(Quality), Quality.Value);
+            }
+            if (!(Watermark is null))
+            {
+                AppendProp(builder, ref first, nameof(Watermark), Watermark);
             }
             builder.Append(']');
             return builder.ToString();

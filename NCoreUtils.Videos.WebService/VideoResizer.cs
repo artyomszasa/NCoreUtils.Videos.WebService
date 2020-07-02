@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -16,6 +17,37 @@ namespace NCoreUtils.Videos.WebService
 {
     public class VideoResizer : IVideoResizer
     {
+        private sealed class WatermarkStream : IStream
+        {
+            public string Path { get; }
+
+            public int Index => 0;
+
+            public string Codec => "png_pipe";
+
+            public StreamType StreamType => StreamType.Video;
+
+            public string Build()
+            {
+                return " -filter_complex \"[0:v][1:0]overlay=(main_w-overlay_w):main_h-overlay_h \" ";
+            }
+
+            public string BuildInputArguments()
+            {
+                return string.Empty;
+            }
+
+            public IEnumerable<string> GetSource()
+            {
+                yield return Path;
+            }
+
+            public WatermarkStream(string path)
+            {
+                Path = path;
+            }
+        }
+
         static VideoResizer()
         {
             if (Environment.OSVersion.Platform == PlatformID.Unix)
@@ -78,6 +110,7 @@ namespace NCoreUtils.Videos.WebService
             // await FFmpeg.GetLatestVersion().ConfigureAwait(false);
             var inputFilename = Path.GetTempFileName();
             var outputFilename = Path.ChangeExtension(inputFilename, "mp4");
+            string? watermarkFilename = default;
             try
             {
                 var stopwatch = new Stopwatch();
@@ -148,11 +181,36 @@ namespace NCoreUtils.Videos.WebService
                 videoStream
                     .SetSize(w, h)
                     .SetCodec(VideoCodec.h264)
-                    .SetBitrate(2000000);
+                    .SetBitrate(1600000);
+                // if (rotation == 90)
+                // {
+                //     videoStream.Rotate(RotateDegrees.Clockwise);
+                // }
 
                 var conversion = FFmpeg.Conversions.New()
                     .AddStream(videoStream)
-                    .AddStreamIfNotNull(audioStream)
+                    .AddStreamIfNotNull(audioStream);
+
+                if (!string.IsNullOrEmpty(options.Watermark))
+                {
+                    watermarkFilename = Path.ChangeExtension(inputFilename, "png");
+                    var watermarkUri = new Uri(options.Watermark);
+                    // FIXME: validation
+                    {
+                        await using var watermarkProducer = new GCSProducer(_storageClient, watermarkUri.Host, watermarkUri.LocalPath.Trim('/'));
+                        await using var watermarkStoreStream = new FileStream(watermarkFilename, FileMode.Create, FileAccess.Write, FileShare.None, 16 * 1024, true);
+                        await using var watermarkStore = StreamConsumer.ToStream(watermarkStoreStream);
+                        await watermarkProducer.ConsumeAsync(watermarkStore);
+                    }
+                    // BUGBUGBUG
+                    //videoStream.SetWatermark(watermarkFilename, Position.BottomRight);
+                    // conversion.AddParameter($"-i {watermarkFilename}", ParameterPosition.PreInput);
+                    // conversion.AddParameter("-filter_complex \"[1] overlay=(main_w-overlay_w):main_h-overlay_h \" -map 1:0");
+                    conversion.AddStream(new WatermarkStream(watermarkFilename));
+                    _logger.LogDebug("Added video watermark [Video = {0}, Watermark = {1}].", inputFilename, watermarkUri);
+                }
+
+                conversion
                     .SetOutput(outputFilename)
                     .SetOverwriteOutput(true)
                     .UseMultiThread(true)
@@ -176,11 +234,20 @@ namespace NCoreUtils.Videos.WebService
                 stopwatch.Stop();
                 _logger.LogDebug("Writing output from local buffer took {0}ms [Path = {0}].", stopwatch.ElapsedMilliseconds, outputFilename);
             }
+            catch (Xabe.FFmpeg.Exceptions.ConversionException exn)
+            {
+                _logger.LogError("Failed operation commandline: {0}", exn.InputParameters);
+                throw;
+            }
             finally
             {
                 // cleanup
                 try { File.Delete(inputFilename); } catch { }
                 try { File.Delete(outputFilename); } catch { }
+                if (watermarkFilename != null)
+                {
+                    try { File.Delete(watermarkFilename); } catch { }
+                }
             }
         }
 
