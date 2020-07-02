@@ -6,6 +6,11 @@
     <Version>3.1.0-alpha1</Version>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="NCoreUtils.Extensions.Memory" Version="1.0.7" />
     <PackageReference Include="NCoreUtils.Images.Abstractions" Version="3.1.0-alpha3" />
+    <PackageReference Include="Nullable" Version="1.2.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

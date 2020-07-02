@@ -96,26 +96,51 @@ namespace NCoreUtils.Videos.WebService
                 {
                     throw new NoVideoStreamException();
                 }
+                _logger.LogDebug("Processing video with options {0}, [Path = {1}].", options, inputFilename);
                 var audioStream = mediaInfo.AudioStreams.FirstOrDefault();
 
-                var ar = (double)videoStream.Width / videoStream.Height;
+                var rotation = 0;
+                try
+                {
+                    var rotStr = await Probe.New()
+                        //.Start($"-v error -select_streams v:0 -show_entries stream=width,height:stream_tags=rotate -of csv=p=0 {inputFile}"))
+                        .Start($"-v error -select_streams v:0 -show_entries stream_tags=rotate -of csv=p=0 {inputFilename}");
+                    int.TryParse(rotStr?.Trim(), out rotation);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Failed to extract rotation [Path = {0}].", inputFilename);
+                }
+                var (vw, vh) = rotation == 90 || rotation == 270
+                    ? (videoStream.Height, videoStream.Width)
+                    : (videoStream.Width, videoStream.Height);
+
+                var aspectRatio = (double)vw / vh;
                 int w = 0;
                 int h = 0;
 
                 if (width.HasValue && height.HasValue)
                 {
-                    w = Math.Min(width.Value, videoStream.Width);
-                    h = Math.Min(height.Value, videoStream.Height);
+                    w = Math.Min(width.Value, vw);
+                    h = Math.Min(height.Value, vh);
                 }
                 else if (width.HasValue)
                 {
-                    w = Math.Min(width.Value, videoStream.Width);
-                    h = RoundTodivisibleByTwo(w / ar);
+                    w = Math.Min(width.Value, vw);
+                    h = RoundTodivisibleByTwo(w / aspectRatio);
                 }
                 else if (height.HasValue)
                 {
-                    h = Math.Min(height.Value, videoStream.Height);
-                    w = RoundTodivisibleByTwo(h * ar);
+                    h = Math.Min(height.Value, vh);
+                    w = RoundTodivisibleByTwo(h * aspectRatio);
+                }
+                if (w != vw || h != vh)
+                {
+                    _logger.LogDebug("Performing video resizing: {0}x{1} => {2}x{3}.", vw, vh, w, h);
+                }
+                else
+                {
+                    _logger.LogDebug("Performing no video resizing (original size: {0}x{1}).", w, h);
                 }
 
                 audioStream?.SetCodec(AudioCodec.aac);
