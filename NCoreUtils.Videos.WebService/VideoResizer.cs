@@ -29,7 +29,7 @@ namespace NCoreUtils.Videos.WebService
 
             public string Build()
             {
-                return " -filter_complex \"[0:v][1:0]overlay=(main_w-overlay_w):main_h-overlay_h \" ";
+                return " -filter_complex \"[0:v][1:0]overlay=10:main_h-overlay_h-10 \" ";
             }
 
             public string BuildInputArguments()
@@ -204,8 +204,6 @@ namespace NCoreUtils.Videos.WebService
                     }
                     // BUGBUGBUG
                     //videoStream.SetWatermark(watermarkFilename, Position.BottomRight);
-                    // conversion.AddParameter($"-i {watermarkFilename}", ParameterPosition.PreInput);
-                    // conversion.AddParameter("-filter_complex \"[1] overlay=(main_w-overlay_w):main_h-overlay_h \" -map 1:0");
                     conversion.AddStream(new WatermarkStream(watermarkFilename));
                     _logger.LogDebug("Added video watermark [Video = {0}, Watermark = {1}].", inputFilename, watermarkUri);
                 }
