@@ -18,7 +18,7 @@ namespace NCoreUtils.Videos.Internal
         public static ServiceDescriptorBuilder ApplyVideoWebServiceDefaults(this ServiceDescriptorBuilder builder, string? path)
             => builder
                 .SetPath(path)
-                .SetNamingPolicy(NamingPolicy.SnakeCase)
+                .SetNamingPolicy(NamingConvention.SnakeCase)
                 .SetDefaultInputType(InputType.Json(_jsonOptions))
                 .SetDefaultOutputType(OutputType.Json(_jsonOptions))
                 .SetDefaultErrorType(ErrorType.Json(_jsonOptions));
