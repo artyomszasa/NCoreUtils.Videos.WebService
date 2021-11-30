@@ -75,7 +75,7 @@ namespace NCoreUtils.Videos.WebService
                     }
                     else
                     {
-                        builder.AddGoogleFluentdSink(projectId: configuration["Google:ProjectId"]);
+                        // builder.AddGoogleFluentdSink(projectId: configuration["Google:ProjectId"]);
                     }
                 })
                 .ConfigureWebHost(webBuilder =>

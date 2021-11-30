@@ -7,7 +7,7 @@ using NCoreUtils.IO;
 
 namespace NCoreUtils.Videos.WebService
 {
-    internal class GCSProducer : IStreamProducer
+    public class GCSProducer : IStreamProducer
     {
         public StorageClient StorageClient { get; }
 

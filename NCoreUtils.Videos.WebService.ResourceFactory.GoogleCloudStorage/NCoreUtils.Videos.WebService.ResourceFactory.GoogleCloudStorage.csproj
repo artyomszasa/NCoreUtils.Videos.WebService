@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;netstandard2.1</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="GCSConsumer.cs" />
+    <Compile Remove="GCSProducer.cs" />
+  </ItemGroup>
+ <ItemGroup>
+    <ProjectReference Include="..\NCoreUtils.Videos.Abstractions\NCoreUtils.Videos.Abstractions.csproj" />
+    <!-- <ProjectReference Include="..\NCoreUtils.Videos.Webservice.Core\NCoreUtils.Videos.Webservice.Core.csproj" /> -->
+  </ItemGroup>
+  <ItemGroup>
+    <!-- <PackageReference Include="Google.Cloud.Storage.V1" Version="3.1.0" /> -->
+    <PackageReference Include="NCoreUtils.Images.GoogleCloudStorage" Version="$(ImagesNugetVersion)" />
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
@@ -14,14 +14,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NCoreUtils.Videos.Shared\NCoreUtils.Videos.Shared.csproj" />
+    <ProjectReference Include="..\NCoreUtils.Videos.WebService.Core\NCoreUtils.Videos.WebService.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Google.Cloud.Storage.V1" Version="3.1.0" />
+    <!--
     <PackageReference Include="NCoreUtils.AspNetCore.Logging.GoogleFluentd" Version="3.1.0-alpha1" />
-    <PackageReference Include="NCoreUtils.AspNetCore.Proto" Version="3.1.0" />
-    <PackageReference Include="NCoreUtils.Images.GoogleCloudStorage" Version="3.1.0-alpha3" />
-    <PackageReference Include="NCoreUtils.Images.WebService.Client" Version="3.1.0-alpha4" />
-    <PackageReference Include="NCoreUtils.IO" Version="3.1.0" />
-    <PackageReference Include="Xabe.FFMpeg" Version="4.1.0" />
+    -->
   </ItemGroup>
 </Project>

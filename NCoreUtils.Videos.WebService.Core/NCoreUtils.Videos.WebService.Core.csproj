@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NCoreUtils.AspNetCore.Proto" Version="3.1.0" />
+    <PackageReference Include="NCoreUtils.Videos.WebService.Client" Version="3.1.0-alpha4" />
+    <PackageReference Include="NCoreUtils.IO" Version="3.1.0.1" />
+    <PackageReference Include="Xabe.FFMpeg" Version="4.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NCoreUtils.Videos.Shared\NCoreUtils.Videos.Shared.csproj" />
+    <ProjectReference Include="..\NCoreUtils.Videos.Abstractions\NCoreUtils.Videos.Abstractions.csproj" />
+    <ProjectReference Include="..\NCoreUtils.Videos.WebService.ResourceFactory.GoogleCloudStorage\NCoreUtils.Videos.WebService.ResourceFactory.GoogleCloudStorage.csproj" />
+  </ItemGroup>
+</Project>

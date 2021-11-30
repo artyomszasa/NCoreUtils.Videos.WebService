@@ -1,13 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using Google.Cloud.Storage.V1;
 using Microsoft.Extensions.Logging;
 using NCoreUtils.Images;
 using NCoreUtils.IO;
@@ -60,19 +52,19 @@ namespace NCoreUtils.Videos.WebService
 
         private readonly IImageResizer _imageResizer;
 
-        private readonly StorageClient _storageClient;
+        //private readonly StorageClient _storageClient;
 
         private readonly IHttpClientFactory? _httpClientFactory;
 
         public VideoResizer(
             ILogger<IVideoResizer> logger,
             IImageResizer imageResizer,
-            StorageClient storageClient,
+            //StorageClient storageClient,
             IHttpClientFactory? httpClientFactory)
         {
             _logger = logger;
             _imageResizer = imageResizer ?? throw new ArgumentNullException(nameof(imageResizer));
-            _storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
+            //_storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
             _httpClientFactory = httpClientFactory;
         }
 
@@ -195,6 +187,7 @@ namespace NCoreUtils.Videos.WebService
                 {
                     watermarkFilename = Path.ChangeExtension(inputFilename, "png");
                     var watermarkUri = new Uri(options.Watermark);
+                    /*
                     // FIXME: validation
                     {
                         await using var watermarkProducer = new GCSProducer(_storageClient, watermarkUri.Host, watermarkUri.LocalPath.Trim('/'));
@@ -202,6 +195,8 @@ namespace NCoreUtils.Videos.WebService
                         await using var watermarkStore = StreamConsumer.ToStream(watermarkStoreStream);
                         await watermarkProducer.ConsumeAsync(watermarkStore);
                     }
+                    */
+
                     // BUGBUGBUG
                     //videoStream.SetWatermark(watermarkFilename, Position.BottomRight);
                     conversion.AddStream(new WatermarkStream(watermarkFilename));
@@ -318,8 +313,9 @@ namespace NCoreUtils.Videos.WebService
             }
         }
 
-        public async Task Thumbnail(Uri source, Uri destination, ResizeOptions options, CancellationToken cancellationToken)
+        public async ValueTask CreateThumbnailAsync(IVideoSource source, IImageDestination destination, ResizeOptions options, CancellationToken cancellationToken)
         {
+            /*
             await using var producer = new GCSProducer(_storageClient, source.Host, source.LocalPath.Trim('/'));
             var consumerFactory = new GoogleCloudStorageDestination(
                 uri: destination,
@@ -329,21 +325,28 @@ namespace NCoreUtils.Videos.WebService
                 httpClientFactory: _httpClientFactory,
                 logger: default
             );
-            await Thumbnail(producer, consumerFactory, options, cancellationToken);
+            */
+            await using var producer = source.CreateProducer();
+            //await using var consumer = destination.CreateConsumer(new ContentInfo());
+            await Thumbnail(producer, destination, options, cancellationToken);
         }
 
-        public async Task ResizeAsync(Uri source, Uri destination, VideoOptions options, CancellationToken cancellationToken)
+        public async ValueTask ResizeAsync(IVideoSource source, IVideoDestination destination, VideoOptions options, CancellationToken cancellationToken)
         {
-            await using var producer = new GCSProducer(_storageClient, source.Host, source.LocalPath.Trim('/'));
-            await using var consumer = new GCSConsumer(
-                _storageClient,
-                destination.Host,
-                destination.LocalPath.Trim('/'),
-                "video/mp4",
-                "public, max-age=31536000",
-                PredefinedObjectAcl.PublicRead
-            );
+            //await using var producer = new GCSProducer(_storageClient, source.Host, source.LocalPath.Trim('/'));
+            // await using var consumer = new GCSConsumer(
+            //     _storageClient,
+            //     destination.Host,
+            //     destination.LocalPath.Trim('/'),
+            //     "video/mp4",
+            //     "public, max-age=31536000",
+            //     PredefinedObjectAcl.PublicRead
+            // );
+            await using var producer = source.CreateProducer();
+            await using var consumer = destination.CreateConsumer(new ContentInfo("video/mp4"));
             await ResizeAsync(producer, consumer, options, cancellationToken);
         }
+
+
     }
 }
