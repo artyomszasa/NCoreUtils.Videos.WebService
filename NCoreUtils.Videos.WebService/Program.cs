@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NCoreUtils.AspNetCore;
 
 namespace NCoreUtils.Videos.WebService
 {
@@ -23,7 +22,7 @@ namespace NCoreUtils.Videos.WebService
             }
             else
             {
-                return new IPEndPoint(IPAddress.Parse(input.Substring(0, portIndex)), int.Parse(input.Substring(portIndex + 1)));
+                return new IPEndPoint(IPAddress.Parse(input.AsSpan(0, portIndex)), int.Parse(input.AsSpan()[(portIndex + 1)..]));
             }
         }
 

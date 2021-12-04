@@ -13,12 +13,16 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NCoreUtils.Videos.Shared\NCoreUtils.Videos.Shared.csproj" />
     <ProjectReference Include="..\NCoreUtils.Videos.WebService.Core\NCoreUtils.Videos.WebService.Core.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <!--
+  <ItemGroup><!--
     <PackageReference Include="NCoreUtils.AspNetCore.Logging.GoogleFluentd" Version="3.1.0-alpha1" />
     -->
+  
+    <ProjectReference Include="..\NCoreUtils.Videos.WebService.ResourceFactory.GoogleCloudStorage\NCoreUtils.Videos.WebService.ResourceFactory.GoogleCloudStorage.csproj" />
+  
+    <ProjectReference Include="..\NCoreUtils.Videos.WebService.ResourceFactory.AzureBlobStorage\NCoreUtils.Videos.WebService.ResourceFactory.AzureBlobStorage.csproj" />
+  
+    <ProjectReference Include="..\NCoreUtils.Videos.WebService.ResourceFactory.FileSystem\NCoreUtils.Videos.WebService.ResourceFactory.FileSystem.csproj" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Threading.Tasks;
-//using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -9,9 +9,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using NCoreUtils.AspNetCore;
-using NCoreUtils.Images;
-//using NCoreUtils.Videos.Internal;
 
 namespace NCoreUtils.Videos.WebService
 {
@@ -48,39 +45,50 @@ namespace NCoreUtils.Videos.WebService
             }
         }
 */
-        private readonly IConfiguration _configuration;
+
+        private readonly IConfiguration Configuration;
 
         private readonly IWebHostEnvironment _env;
 
         protected CoreStartup(IConfiguration configuration, IWebHostEnvironment env)
         {
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _env = env ?? throw new ArgumentNullException(nameof(env));
         }
+
+#if !NETCOREAPP3_1
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "Dynamic dependency binds required members.")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(VideoResizerOptions))]
+#endif
+        protected virtual IVideoResizerOptions GetVideoResizerOptions()
+            => Configuration.GetSection("Videos")
+                .Get<VideoResizerOptions>()
+                ?? VideoResizerOptions.Default;
+
         protected virtual void AddHttpContextAccessor(IServiceCollection services)
         {
             services
                 .AddHttpContextAccessor();
         }
 
+        protected abstract void ConfigureResourceFactories(CompositeResourceFactoryBuilder b);
+
         public virtual void ConfigureServices(IServiceCollection services)
         {
-            //var storageClientAccessor = InitializeStorageClient();
             AddHttpContextAccessor(services);
 
             services
+                // JSON Serialization
+                .AddOptions<JsonSerializerOptions>()
+                    .Configure(opts => opts.PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+                    .Services
+                // image resizer options
+                .AddSingleton(GetVideoResizerOptions())
                 // http client factory
                 .AddHttpClient()
-                // JSON serialization
-                .AddOptions<JsonSerializerOptions>().Services
-                .ConfigureOptions<ConfigureJson>()
-                .AddTransient(serviceProvider => serviceProvider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>().CurrentValue)
-                // Google Cloud Storage client
-               // .AddTransient(_ => storageClientAccessor())
                 // Video resizer implementation
-                .AddSingleton<IVideoResizer, VideoResizer>()
-                // Image resizer client
-                //.AddImageResizerClient(_configuration["Images:Endpoint"], true, true)
+                .AddXabeVideoResizer()
                 // CORS
                 .AddCors(b => b.AddDefaultPolicy(opts => opts
                     .AllowAnyHeader()
@@ -90,8 +98,8 @@ namespace NCoreUtils.Videos.WebService
                     .WithOrigins("https://example.com", "http://127.0.0.1")
                     .SetIsOriginAllowed(_ => true)
                 ))
-                // routing
-                .AddRouting();
+                // source/destination handlers
+                .AddResourceFactories(ConfigureResourceFactories);
         }
 
         public virtual void Configure(IApplicationBuilder app)
@@ -105,14 +113,13 @@ namespace NCoreUtils.Videos.WebService
 
             app
                 .UseForwardedHeaders(ConfigureForwardedHeaders())
-#if !DEBUG
-                .UsePrePopulateLoggingContext()
-#endif
                 .UseCors()
-                .UseRouting()
-                .UseEndpoints(endpoints =>
+                .UseMiddleware<ErrorMiddleware>()
+                .UseMiddleware<VideosMiddleware>()
+                .Run((context) =>
                 {
-                    // endpoints.MapProto<IVideoResizer>(b => b.ApplyVideoWebServiceDefaults());
+                    context.Response.StatusCode = 404;
+                    return Task.CompletedTask;
                 });
         }
     }

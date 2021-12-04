@@ -6,23 +6,26 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NCoreUtils.Videos.WebService;
 using NCoreUtils.IO;
-using NCoreUtils.Images;
 
 namespace NCoreUtils.Videos
 {
     public partial class VideoResizerClient : VideosClient, IVideoResizer
     {
-        static string CreateQueryString(VideoOptions options)
+        static string CreateQueryString(ResizeOptions options)
         {
             var first = true;
             Span<char> buffer = stackalloc char[8192];
             var builder = new SpanBuilder(buffer);
             return builder
+                .AppendQ(ref first, "a", options.AudioType)
                 .AppendQ(ref first, "t", options.VideoType)
                 .AppendQ(ref first, "w", options.Width)
                 .AppendQ(ref first, "h", options.Height)
+                .AppendQ(ref first, "m", options.ResizeMode)
                 .AppendQ(ref first, "q", options.Quality)
-                .AppendQ(ref first, "wt", options.Watermark)
+                .AppendQ(ref first, "x", options.Optimize)
+                .AppendQ(ref first, "cx", options.WeightX)
+                .AppendQ(ref first, "cy", options.WeightY)
                 .ToString();
         }
 
@@ -60,7 +63,15 @@ namespace NCoreUtils.Videos
                         payload = new SourceAndDestination(ssource.Uri, default);
                         dest = destination;
                     }
-                    var producer = StreamProducer.Create((ouput, cancellationToken) => new ValueTask(JsonSerializer.SerializeAsync(ouput, payload, _sourceAndDestinationSerializationOptions, cancellationToken)));
+                    var producer = StreamProducer.Create((ouput, cancellationToken) =>
+                    {
+                        return new ValueTask(JsonSerializer.SerializeAsync(
+                            ouput,
+                            payload,
+                            SourceAndDestinationJsonContext.Default.SourceAndDestination,
+                            cancellationToken
+                        ));
+                    });
                     return ResizeOperationContext.Json(producer, dest);
                 }
                 // remote server does not support json-serialization
@@ -104,7 +115,7 @@ namespace NCoreUtils.Videos
             Logger.LogDebug("Resize operation starting.");
             var uri = new UriBuilder(endpoint) { Query = queryString }.Uri;
             var context = await GetOperationContextAsync(source, destination, endpoint, cancellationToken).ConfigureAwait(false);
-            Logger.LogDebug("Computed context for resize operation ({0}).", context.ContentType);
+            Logger.LogDebug("Computed context for resize operation ({ContentType}).", context.ContentType);
             try
             {
                 IStreamConsumer consumer;
@@ -137,7 +148,13 @@ namespace NCoreUtils.Videos
                         Logger.LogDebug("Received response of the resize request.");
                         await CheckAsync(response, cancellationToken).ConfigureAwait(false);
                         outputMime = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
-                        using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                        await using var stream = await response.Content
+#if NETSTANDARD2_1
+                            .ReadAsStreamAsync()
+#else
+                            .ReadAsStreamAsync(cancellationToken)
+#endif
+                            .ConfigureAwait(false);
                         await stream.CopyToAsync(output, 16 * 1024, cancellationToken).ConfigureAwait(false);
                         Logger.LogDebug("Done processing response of the resize request.");
                     }));
@@ -161,13 +178,13 @@ namespace NCoreUtils.Videos
                 throw new RemoteVideoException(endpoint, ErrorCodes.GenericError, "Error has occurred while performing operation.", exn);
             }
         }
-        public ValueTask ResizeAsync(IVideoSource source, IVideoDestination destination, VideoOptions options, CancellationToken cancellationToken)
+        public ValueTask ResizeAsync(IVideoSource source, IVideoDestination destination, ResizeOptions options, CancellationToken cancellationToken)
         {
             var queryString = CreateQueryString(options);
             return InvokeResizeAsync(source, destination, queryString, Configuration.EndPoint, cancellationToken);
         }
 
-        public ValueTask CreateThumbnailAsync(IVideoSource source, IImageDestination destination, ResizeOptions options, CancellationToken cancellationToken)
+        public ValueTask CreateThumbnailAsync(IVideoSource source, IVideoDestination destination, ResizeOptions options, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

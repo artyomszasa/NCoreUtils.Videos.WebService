@@ -4,21 +4,21 @@ using System.Runtime.Serialization;
 namespace NCoreUtils.Videos.WebService
 {
     [Serializable]
-    public class RemoteInvalidImageException : InvalidVideoException, IRemoteVideoException
+    public class RemoteInvalidVideoException : InvalidVideoException, IRemoteVideoException
     {
         public string EndPoint { get; }
 
         public override string Message => $"{base.Message} [EndPoint = {EndPoint}]";
 
-        protected RemoteInvalidImageException(SerializationInfo info, StreamingContext context)
+        protected RemoteInvalidVideoException(SerializationInfo info, StreamingContext context)
             : base(info, context)
             => EndPoint = info.GetString(nameof(EndPoint)) ?? string.Empty;
 
-        public RemoteInvalidImageException(string endpoint, string description)
+        public RemoteInvalidVideoException(string endpoint, string description)
             : base(description)
             => EndPoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
 
-        public RemoteInvalidImageException(string endpoint, string description, Exception innerException)
+        public RemoteInvalidVideoException(string endpoint, string description, Exception innerException)
             : base(description, innerException)
             => EndPoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
 

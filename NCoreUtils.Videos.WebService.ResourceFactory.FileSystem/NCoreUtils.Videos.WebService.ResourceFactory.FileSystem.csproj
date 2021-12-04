@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\NCoreUtils.Videos.WebService.Core\NCoreUtils.Videos.WebService.Core.csproj" />
+    <ProjectReference Include="..\NCoreUtils.Videos.FileSystem\NCoreUtils.Videos.FileSystem.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
