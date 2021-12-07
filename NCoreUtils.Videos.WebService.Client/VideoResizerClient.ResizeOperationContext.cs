@@ -12,10 +12,10 @@ namespace NCoreUtils.Videos
             static readonly MediaTypeHeaderValue _json = MediaTypeHeaderValue.Parse("application/json; charset=utf-8");
 
             public static ResizeOperationContext Inline(IStreamProducer producer, IVideoDestination destination)
-                => new ResizeOperationContext(_binary, producer, destination);
+                => new(_binary, producer, destination);
 
             public static ResizeOperationContext Json(IStreamProducer producer, IVideoDestination? destination = default)
-                => new ResizeOperationContext(_json, producer, destination);
+                => new(_json, producer, destination);
 
             public MediaTypeHeaderValue ContentType { get; }
 

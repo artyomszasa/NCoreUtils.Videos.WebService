@@ -34,6 +34,7 @@ namespace NCoreUtils.Videos
                     || contentType.StartsWith("text/json", StringComparison.OrdinalIgnoreCase)
                     || contentType.StartsWith("text/plain", StringComparison.OrdinalIgnoreCase));
 
+#pragma warning disable IDE0060
         private static ResizeOptions ReadResizeOptions(IResourceFactory resourceFactory, IQueryCollection query)
         {
             return new ResizeOptions(
@@ -49,6 +50,7 @@ namespace NCoreUtils.Videos
                 weightY: I("cy")
                 //filters: FilterParser.Parse(resourceFactory, S("f"))
             );
+#pragma warning restore IDE0060
 
             bool? B(string name)
             {

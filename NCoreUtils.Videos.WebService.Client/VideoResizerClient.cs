@@ -163,7 +163,7 @@ namespace NCoreUtils.Videos
                 await context.Producer.ConsumeAsync(consumer, cancellationToken).ConfigureAwait(false);
                 Logger.LogDebug("Resize operation completed.");
             }
-            catch (Exception exn) when (!(exn is VideoException))
+            catch (Exception exn) when (exn is not VideoException)
             {
                 if (IsSocketRelated(exn, out var socketExn))
                 {
