@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
-using NCoreUtils.Images;
 using NCoreUtils.IO;
 using Xabe.FFmpeg;
 

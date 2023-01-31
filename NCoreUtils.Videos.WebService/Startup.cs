@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using NCoreUtils.Resources;
 
 namespace NCoreUtils.Videos.WebService
 {
@@ -7,17 +10,30 @@ namespace NCoreUtils.Videos.WebService
     {
         public Startup(IConfiguration configuration, IWebHostEnvironment env) : base(configuration, env) { }
 
-        protected override void ConfigureResourceFactories(CompositeResourceFactoryBuilder b)
+        protected override void ConfigureResourceFactories(OptionsBuilder<CompositeResourceFactoryConfiguration> b)
         {
             b
-                // inline data
-                .Add<DefaultResourceFactory>()
+#if EnableGoogleCloudStorage
                 // GCS
-                .Add<GoogleCloudStorageResourceFactory>()
+                .AddGoogleCloudStorageResourceFactory(passthrough: false)
+#endif
+#if EnableAzureBlobStorage
                 // Azure Bloc Storage
-                .Add<AzureBlobStorageResourceFactory>()
+                .AddAzureBlobResourceFactory()
+#endif
+#if EnableLocalStorage
                 // locally mounted fs
-                .Add<FileSystemResourceFactory>();
+                .AddFileSystemResourceFactory()
+#endif
+                ;
+        }
+
+        public override void ConfigureServices(IServiceCollection services)
+        {
+            base.ConfigureServices(services);
+#if EnableGoogleCloudStorage
+            services.AddGoogleCloudStorageUtils();
+#endif
         }
     }
 }

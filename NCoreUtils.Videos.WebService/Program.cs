@@ -1,15 +1,19 @@
 using System;
+using System.Globalization;
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+#if EnableGoogleFluentdLogging
+using NCoreUtils.Logging;
+#endif
 
 namespace NCoreUtils.Videos.WebService
 {
     public class Program
     {
-        private static IPEndPoint ParseEndpoint(string? input)
+        static IPEndPoint ParseEndpoint(string? input)
         {
             if (string.IsNullOrEmpty(input))
             {
@@ -26,31 +30,10 @@ namespace NCoreUtils.Videos.WebService
             }
         }
 
-        /// <summary>
-        /// Listening ip/port is determined as follows:
-        /// <para>
-        /// - if <c>PORT</c> environment variable is set --> listen at <c>0.0.0.0:{PORT}</c>;
-        /// </para>
-        /// <para>
-        /// - if <c>ASPNETCORE_LISTEN_AT</c> environment variable is set --> listen at <c>{ASPNETCORE_LISTEN_AT}</c>;
-        /// </para>
-        /// <para>
-        /// - otherwise listen at <c>127.0.0.1:5000</c>.
-        /// </para>
-        /// </summary>
-        private static IPEndPoint GetListenEndpoint()
-            => Environment.GetEnvironmentVariable("PORT") switch
-            {
-                null => ParseEndpoint(Environment.GetEnvironmentVariable("ASPNETCORE_LISTEN_AT")),
-                var rawPort => new IPEndPoint(IPAddress.Any, int.Parse(rawPort))
-            };
-
-        private static IConfiguration CreateConfiguration()
+        private static IConfigurationRoot LoadConfiguration()
             => new ConfigurationBuilder()
-                .SetBasePath(Environment.CurrentDirectory)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
                 .AddJsonFile("secrets/appsettings.json", optional: true, reloadOnChange: false)
-                .AddEnvironmentVariables()
                 .Build();
 
         public static void Main(string[] args)
@@ -58,31 +41,41 @@ namespace NCoreUtils.Videos.WebService
             CreateHostBuilder(args).Build().Run();
         }
 
+#pragma warning disable IDE0060
         public static IHostBuilder CreateHostBuilder(string[] args)
+#pragma warning restore IDE0060
         {
-            var configuration = CreateConfiguration();
+            var configuration = LoadConfiguration();
             return new HostBuilder()
                 .UseContentRoot(Environment.CurrentDirectory)
-                .ConfigureLogging((context, builder) =>
+                .ConfigureAppConfiguration(b => b.AddConfiguration(configuration))
+                .ConfigureLogging((ctx, builder) =>
                 {
                     builder
                         .ClearProviders()
-                        .AddConfiguration(configuration.GetSection("Logging"));
-                    if (context.HostingEnvironment.IsDevelopment())
-                    {
-                        builder.AddConsole().AddDebug();
-                    }
-                    else
-                    {
-                        // builder.AddGoogleFluentdSink(projectId: configuration["Google:ProjectId"]);
-                    }
+                        .AddConfiguration(configuration)
+#if EnableGoogleFluentdLogging
+                        .AddGoogleFluentd<AspNetCoreLoggerProvider>(projectId: configuration["Google:ProjectId"]);
+#else
+                        .AddConsole();
+#endif
                 })
                 .ConfigureWebHost(webBuilder =>
                 {
-                    webBuilder
-                        .UseConfiguration(configuration)
-                        .UseStartup<Startup>()
-                        .UseKestrel(opts => opts.Listen(GetListenEndpoint()));
+                    webBuilder.UseStartup<Startup>();
+                    webBuilder.UseKestrel(o =>
+                    {
+                        // Google Cloud Run passes port to listen on through PORT env variable.
+                        var endpoint = Environment.GetEnvironmentVariable("PORT") switch
+                        {
+                            null => ParseEndpoint(Environment.GetEnvironmentVariable("LISTEN")),
+                            string portAsString => int.TryParse(portAsString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port)
+                                ? new IPEndPoint(IPAddress.Any, port)
+                                : ParseEndpoint(Environment.GetEnvironmentVariable("LISTEN"))
+                        };
+                        o.Listen(endpoint);
+                        o.AllowSynchronousIO = true;
+                    });
                 });
         }
     }

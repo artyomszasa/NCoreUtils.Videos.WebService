@@ -1,7 +1,6 @@
-namespace NCoreUtils.Videos.WebService
+namespace NCoreUtils.Videos.WebService;
+
+public interface IRemoteVideoException
 {
-    public interface IRemoteVideoException
-    {
-        string EndPoint { get; }
-    }
+    string EndPoint { get; }
 }

@@ -1,69 +1,61 @@
 using System;
-using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using NCoreUtils.Memory;
 
-namespace NCoreUtils.Videos.Logging
+namespace NCoreUtils.Videos.Logging;
+
+public struct InitializingDestinationEntry : ISpanExactEmplaceable
 {
-    public struct InitializingDestinationEntry : IEmplaceable<InitializingDestinationEntry>
+    public static Func<InitializingDestinationEntry, Exception?, string> Formatter { get; } =
+        (entry, _) => entry.ToString();
+
+    public string ContentType { get; }
+
+    public InitializingDestinationEntry(string contentType)
+        => ContentType = contentType ?? string.Empty;
+
+    private int GetEmplaceBufferSize()
+        => 50 + ContentType.Length;
+
+    bool ISpanEmplaceable.TryGetEmplaceBufferSize(out int minimumBufferSize)
     {
-        public static Func<InitializingDestinationEntry, Exception?, string> Formatter { get; } =
-            (entry, _) => entry.ToString();
-
-        public string ContentType { get; }
-
-        public InitializingDestinationEntry(string contentType)
-        {
-            ContentType = contentType;
-        }
-
-        public int Emplace(Span<char> span)
-        {
-            if (TryEmplace(span, out var used))
-            {
-                return used;
-            }
-            throw new ArgumentException("Insufficient buffer size.", nameof(span));
-        }
-
-        public bool TryEmplace(Span<char> span, out int used)
-        {
-            var builder = new SpanBuilder(span);
-            if (builder.TryAppend("Initializing image destination with content type ")
-                && builder.TryAppend(ContentType)
-                && builder.TryAppend('.'))
-            {
-                used = builder.Length;
-                return true;
-            }
-            used = default;
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private bool TryToStringOnStack([NotNullWhen(true)] out string? result)
-        {
-            Span<char> buffer = stackalloc char[4 * 1024];
-            if (TryEmplace(buffer, out var size))
-            {
-                result = buffer[..size].ToString();
-                return true;
-            }
-            result = default;
-            return false;
-        }
-
-        public override string ToString()
-        {
-            if (TryToStringOnStack(out var result))
-            {
-                return result;
-            }
-            using var memoryBuffer = MemoryPool<char>.Shared.Rent(32 * 1024);
-            var buffer = memoryBuffer.Memory.Span;
-            var size = Emplace(buffer);
-            return buffer[..size].ToString();
-        }
+        minimumBufferSize = GetEmplaceBufferSize();
+        return true;
     }
+
+    int ISpanExactEmplaceable.GetEmplaceBufferSize()
+        => GetEmplaceBufferSize();
+
+#if NET6_0_OR_GREATER
+    string IFormattable.ToString(string? format, System.IFormatProvider? formatProvider)
+        => ToString();
+#else
+    public bool TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider)
+        => TryEmplace(destination, out charsWritten);
+
+    public int Emplace(Span<char> span)
+    {
+        if (TryEmplace(span, out var used))
+        {
+            return used;
+        }
+        throw new InsufficientBufferSizeException(span);
+    }
+#endif
+
+    public bool TryEmplace(Span<char> span, out int used)
+    {
+        var builder = new SpanBuilder(span);
+        if (builder.TryAppend("Initializing video destination with content type ")
+            && builder.TryAppend(ContentType)
+            && builder.TryAppend('.'))
+        {
+            used = builder.Length;
+            return true;
+        }
+        used = default;
+        return false;
+    }
+
+    public override string ToString()
+        => Emplacer.ToStringUsingArrayPool(this);
 }

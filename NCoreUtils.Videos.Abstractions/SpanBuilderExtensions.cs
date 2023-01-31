@@ -5,7 +5,7 @@ namespace NCoreUtils.Videos
     internal static class SpanBuilderExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryAppendOption(this ref SpanBuilder builder, ref bool first, string key, string? value)
+        public static bool TryAppendOption(this ref SpanBuilder builder, scoped ref bool first, string key, string? value)
         {
             if (!string.IsNullOrEmpty(value))
             {
@@ -25,7 +25,7 @@ namespace NCoreUtils.Videos
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryAppendOption(this ref SpanBuilder builder, ref bool first, string key, int? value)
+        public static bool TryAppendOption(this ref SpanBuilder builder, scoped ref bool first, string key, int? value)
         {
             if (value.HasValue)
             {
@@ -45,7 +45,7 @@ namespace NCoreUtils.Videos
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryAppendOption(this ref SpanBuilder builder, ref bool first, string key, bool? value)
+        public static bool TryAppendOption(this ref SpanBuilder builder, scoped ref bool first, string key, bool? value)
         {
             if (value.HasValue)
             {
@@ -65,8 +65,7 @@ namespace NCoreUtils.Videos
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryAppendOption<T>(this ref SpanBuilder builder, ref bool first, string key, T? value)
-            where T : class
+        public static bool TryAppendOption(this ref SpanBuilder builder, scoped ref bool first, string key, VideoSettings? value)
         {
             if (value is not null)
             {
@@ -80,7 +79,7 @@ namespace NCoreUtils.Videos
                 }
                 return builder.TryAppend(key)
                     && builder.TryAppend(" = ")
-                    && builder.TryAppend(value);
+                    && builder.TryAppend(value, VideoSettings.Emplacer);
             }
             return true;
         }

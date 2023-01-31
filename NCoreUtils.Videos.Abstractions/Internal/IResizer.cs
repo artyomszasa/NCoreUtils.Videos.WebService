@@ -1,10 +1,8 @@
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
-namespace NCoreUtils.Videos.Internal
+namespace NCoreUtils.Videos.Internal;
+
+public interface IResizer
 {
-    public interface IResizer
-    {
-        ValueTask ResizeAsync(IVideo videoInfo, CancellationToken cancellationToken = default);
-    }
+    IAsyncEnumerable<VideoTransformation> PopulateTransformations(IVideo videoInfo);
 }

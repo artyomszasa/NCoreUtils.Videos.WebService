@@ -53,7 +53,7 @@ namespace NCoreUtils.Videos.Xabe
                 Logger.LogWarning(e, "Failed to extract rotation [Path = {Path}].", tmpVideoPath);
                 rotation = 0;
             }
-            return new Video(tmpVideoPath, videoStream, audioStream, rotation);
+            return new Video(tmpVideoPath, mediaInfo, videoStream, audioStream, rotation);
         }
     }
 }

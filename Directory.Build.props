@@ -1,9 +1,13 @@
 <Project>
   <PropertyGroup>
-    <Version>6.0.0-alpha00</Version>
-    <LangVersion>10.0</LangVersion>
+    <Version>7.0.0-alpha00</Version>
+    <LangVersion>11.0</LangVersion>
     <Nullable>enable</Nullable>
-    <FxNugetVersion>6.0.0</FxNugetVersion>
+    <Fx7NugetVersion>6.0.0</Fx7NugetVersion>
+    <Fx6NugetVersion>6.0.0</Fx6NugetVersion>
     <Fx3NugetVersion>3.1.16</Fx3NugetVersion>
+    <FxNugetVersion Condition=" '$(TargetFramework)' == 'net7.0' " >$(Fx7NugetVersion)</FxNugetVersion>
+    <FxNugetVersion Condition=" '$(TargetFramework)' == 'net6.0' " >$(Fx6NugetVersion)</FxNugetVersion>
+    <FxNugetVersion Condition=" '$(TargetFramework)' != 'net7.0' And '$(TargetFramework)' != 'net6.0' " >$(Fx3NugetVersion)</FxNugetVersion>
   </PropertyGroup>
 </Project>

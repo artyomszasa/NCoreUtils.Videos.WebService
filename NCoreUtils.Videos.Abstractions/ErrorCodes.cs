@@ -1,21 +1,20 @@
-namespace NCoreUtils.Videos
+namespace NCoreUtils.Videos;
+
+/// Contains predefined error codes.
+public static class ErrorCodes
 {
-    /// Contains predefined error codes.
-    public static class ErrorCodes
-    {
-        /// Resize method not supported.
-        public const string UnsupportedResizeMode = "unsupported_resize_mode";
+    /// Resize method not supported.
+    public const string UnsupportedResizeMode = "unsupported_resize_mode";
 
-        /// Requested output image type not supported.
-        public const string UnsupportedVideoType = "unsupported_video_type";
+    /// Requested output video type not supported.
+    public const string UnsupportedVideoType = "unsupported_video_type";
 
-        /// Input image is invalid or not supported.
-        public const string InvalidVideo = "invalid_video";
+    /// Input video is invalid or not supported.
+    public const string InvalidVideo = "invalid_video";
 
-        /// Implementation specific error occured while preforming resize or get-info operation.
-        public const string InternalError = "internal_error";
+    /// Implementation specific error occured while preforming resize or get-info operation.
+    public const string InternalError = "internal_error";
 
-        /// Generic error.
-        public const string GenericError = "generic_error";
-    }
+    /// Generic error.
+    public const string GenericError = "generic_error";
 }

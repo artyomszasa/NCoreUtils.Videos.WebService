@@ -1,11 +1,10 @@
-namespace NCoreUtils.Videos.WebService
+namespace NCoreUtils.Videos.WebService;
+
+public static class Routes
 {
-    public static class Routes
-    {
-        public const string Capabilities = "capabilities";
+    public const string Capabilities = "capabilities";
 
-        public const string Info = "info";
+    public const string Info = "info";
 
-        public const string Thumbnail = "thumbnail";
-    }
+    public const string Thumbnail = "thumbnail";
 }

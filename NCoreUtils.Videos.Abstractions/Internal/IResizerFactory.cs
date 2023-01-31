@@ -1,7 +1,6 @@
-namespace NCoreUtils.Videos.Internal
+namespace NCoreUtils.Videos.Internal;
+
+public interface IResizerFactory
 {
-    public interface IResizerFactory
-    {
-        IResizer CreateResizer(IVideo video, ResizeOptions options);
-    }
+    IResizer CreateResizer(IVideo video, ResizeOptions options);
 }

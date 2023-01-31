@@ -1,60 +1,62 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
-namespace NCoreUtils.Videos.Internal
+namespace NCoreUtils.Videos.Internal;
+
+public class ExactResizerFactory : IResizerFactory
 {
-    public class ExactResizerFactory : IResizerFactory
+    private sealed class ExactResizer : IResizer
     {
-        private sealed class ExactResizer : IResizer
-        {
-            readonly Size _size;
+        readonly Size _size;
 
-            public ExactResizer(Size size)
-                => _size = size;
+        public ExactResizer(Size size)
+            => _size = size;
 
-            public ValueTask ResizeAsync(IVideo video, CancellationToken cancellationToken = default)
-                => video.ResizeAsync(_size, cancellationToken);
-        }
-
-        public static ExactResizerFactory Instance { get; } = new ExactResizerFactory();
-
-        private ExactResizerFactory() { }
-
-        public IResizer CreateResizer(IVideo image, ResizeOptions options)
-        {
-            Size size;
-            if (options.Width.HasValue)
+        public IAsyncEnumerable<VideoTransformation> PopulateTransformations(IVideo videoInfo)
+            // FIMXE: do not alloc array
+            => new AsyncVideoTransformationEnumerable(new VideoTransformation[]
             {
-                if (options.Height.HasValue)
-                {
-                    size = new Size(options.Width.Value, options.Height.Value);
-                }
-                else
-                {
-                    var imageSize = image.Size;
-                    size = new Size(
-                        options.Width.Value,
-                        (int)((double)imageSize.Height / imageSize.Width * options.Width.Value)
-                    );
-                }
+                VideoTransformation.Resize(_size)
+            });
+    }
+
+    public static ExactResizerFactory Instance { get; } = new ExactResizerFactory();
+
+    private ExactResizerFactory() { }
+
+    public IResizer CreateResizer(IVideo video, ResizeOptions options)
+    {
+        Size size;
+        if (options.Width.HasValue)
+        {
+            if (options.Height.HasValue)
+            {
+                size = new Size(options.Width.Value, options.Height.Value);
             }
             else
             {
-                if (options.Height.HasValue)
-                {
-                    var imageSize = image.Size;
-                    size = new Size(
-                        (int)((double)imageSize.Width / imageSize.Height * options.Height.Value),
-                        options.Height.Value
-                    );
-                }
-                else
-                {
-                    throw new InvalidOperationException("Output image dimensions must be specified when using exact resizing.");
-                }
+                var videoSize = video.Size;
+                size = new Size(
+                    options.Width.Value,
+                    (int)((double)videoSize.Height / videoSize.Width * options.Width.Value)
+                );
             }
-            return new ExactResizer(size);
         }
+        else
+        {
+            if (options.Height.HasValue)
+            {
+                var videoSize = video.Size;
+                size = new Size(
+                    (int)((double)videoSize.Width / videoSize.Height * options.Height.Value),
+                    options.Height.Value
+                );
+            }
+            else
+            {
+                throw new InvalidOperationException("Output video dimensions must be specified when using exact resizing.");
+            }
+        }
+        return new ExactResizer(size);
     }
 }

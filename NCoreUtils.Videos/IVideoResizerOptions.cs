@@ -1,9 +1,8 @@
-namespace NCoreUtils.Videos
-{
-    public interface IVideoResizerOptions
-    {
-        int Quality(string videoType);
+namespace NCoreUtils.Videos;
 
-        bool Optimize(string videoType);
-    }
+public interface IVideoResizerOptions
+{
+    int Quality(string videoType);
+
+    bool Optimize(string videoType);
 }

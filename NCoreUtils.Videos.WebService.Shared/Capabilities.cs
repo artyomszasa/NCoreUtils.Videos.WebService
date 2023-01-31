@@ -1,7 +1,6 @@
-namespace NCoreUtils.Videos.WebService
+namespace NCoreUtils.Videos.WebService;
+
+public static class Capabilities
 {
-    public static class Capabilities
-    {
-        public const string JsonSerializedVideoInfo = "https://ncoreutils.eu/videos/json-serialized";
-    }
+    public const string JsonSerializedVideoInfo = "https://ncoreutils.eu/videos/json-serialized";
 }

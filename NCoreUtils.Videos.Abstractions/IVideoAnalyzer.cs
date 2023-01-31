@@ -1,11 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
-using NCoreUtils.Videos;
 
-namespace NCoreUtils
+namespace NCoreUtils.Videos;
+
+public interface IVideoAnalyzer
 {
-    public interface IVideoAnalyzer
-    {
-        ValueTask<VideoInfo> AnalyzeAsync(IVideoSource source, CancellationToken cancellationToken);
-    }
+    ValueTask<VideoInfo> AnalyzeAsync(IReadableResource source, CancellationToken cancellationToken = default);
 }

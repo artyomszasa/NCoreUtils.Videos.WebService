@@ -144,9 +144,9 @@ namespace NCoreUtils.Videos.WebService
             }
         }
 
-        readonly IHttpClientFactory? _httpClientFactory;
+        private readonly IHttpClientFactory? _httpClientFactory;
 
-        HashSet<string>? _cachedCapabilities;
+        private HashSet<string>? _cachedCapabilities;
 
         protected VideosClientConfiguration Configuration { get; }
 

@@ -12,7 +12,7 @@ namespace NCoreUtils.Videos
             bool suppressDefaultResizers = false,
             Action<ResizerCollectionBuilder>? configure = default)
             => services
-                .AddSingleton<IVideoProvider, VideoProvider>()
+                // .AddSingleton<IVideoProvider, VideoProvider>()
                 .AddVideoResizer<VideoProvider>(suppressDefaultResizers, configure);
     }
 }

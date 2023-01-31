@@ -1,21 +1,39 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NCoreUtils.Videos.Internal
+namespace NCoreUtils.Videos.Internal;
+
+public class NoneResizerFactory : IResizerFactory
 {
-    public class NoneResizerFactory : IResizerFactory
+    private sealed class NoTransformationsEnumerator : IAsyncEnumerator<VideoTransformation>
     {
-        sealed class NoneResizer : IResizer
-        {
-            public static NoneResizer Instance { get; } = new NoneResizer();
+        public static NoTransformationsEnumerator Singleton { get; } = new();
 
-            NoneResizer() { }
+        public VideoTransformation Current => default;
 
-            public ValueTask ResizeAsync(IVideo image, CancellationToken cancellationToken = default)
-                => default;
-        }
+        private NoTransformationsEnumerator() { /* noop */ }
 
+        public ValueTask DisposeAsync()
+            => default; // noop
 
-        public IResizer CreateResizer(IVideo image, ResizeOptions options) => NoneResizer.Instance;
+        public ValueTask<bool> MoveNextAsync()
+            => default; // false
     }
+
+    public sealed class NoneResizer : IResizer, IAsyncEnumerable<VideoTransformation>
+    {
+        public static NoneResizer Instance { get; } = new NoneResizer();
+
+        NoneResizer() { }
+
+        public IAsyncEnumerable<VideoTransformation> PopulateTransformations(IVideo videoInfo)
+            => this;
+
+        IAsyncEnumerator<VideoTransformation> IAsyncEnumerable<VideoTransformation>.GetAsyncEnumerator(CancellationToken cancellationToken)
+            => NoTransformationsEnumerator.Singleton;
+    }
+
+
+    public IResizer CreateResizer(IVideo video, ResizeOptions options) => NoneResizer.Instance;
 }
