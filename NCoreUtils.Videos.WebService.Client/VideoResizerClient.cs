@@ -30,7 +30,7 @@ public partial class VideoResizerClient : VideosClient, IVideoResizer
     }
 
     public VideoResizerClient(
-        VideosClientConfiguration configuration,
+        VideosClientConfiguration<VideoResizerClient> configuration,
         ILogger<VideoResizerClient> logger,
         IHttpClientFactory? httpClientFactory = null)
         : base(configuration, logger, httpClientFactory)

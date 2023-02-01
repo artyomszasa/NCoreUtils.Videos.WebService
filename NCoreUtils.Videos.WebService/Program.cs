@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
@@ -34,8 +35,12 @@ namespace NCoreUtils.Videos.WebService
             => new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
                 .AddJsonFile("secrets/appsettings.json", optional: true, reloadOnChange: false)
+                .AddEnvironmentVariables("VIDEOS_")
                 .Build();
 
+#if EnableGoogleCloudStorage
+        [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(global::Google.Apis.Auth.OAuth2.JsonCredentialParameters))]
+#endif
         public static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();

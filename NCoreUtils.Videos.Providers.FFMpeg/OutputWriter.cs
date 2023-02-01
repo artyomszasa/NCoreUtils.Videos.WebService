@@ -49,7 +49,7 @@ internal sealed class OutputWriter : IConsumer<AVPacket>
     {
         OutCtx.InterleavedFlush();
         OutCtx.WriteTrailer();
-        OutCtx.Dump(0, "out");
+        // OutCtx.Dump(0, "out");
     }
 
     public void Dispose()

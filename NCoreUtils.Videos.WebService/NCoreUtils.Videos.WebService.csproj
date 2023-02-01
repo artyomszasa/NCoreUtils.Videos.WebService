@@ -18,20 +18,18 @@
     <DefineConstants Condition=" '$(EnableGoogleCloudStorage)' == 'true' ">$(DefineConstants);EnableGoogleCloudStorage</DefineConstants>
     <DefineConstants Condition=" '$(EnableAzureBlobStorage)' == 'true' ">$(DefineConstants);EnableAzureBlobStorage</DefineConstants>
     <DefineConstants Condition=" '$(EnableLocalStorage)' == 'true' ">$(DefineConstants);EnableLocalStorage</DefineConstants>
-    <DefineConstants Condition=" '$(  )' == 'true' ">$(DefineConstants);EnableGoogleFluentdLogging</DefineConstants>
+    <DefineConstants Condition=" '$(EnableGoogleFluentdLogging)' == 'true' ">$(DefineConstants);EnableGoogleFluentdLogging</DefineConstants>
   </PropertyGroup>
-  <!--
   <ItemGroup>
     <TrimmerRootDescriptor Include="NCoreUtils.Videos.WebService.trim.xml" />
   </ItemGroup>
-  -->
   <ItemGroup>
     <ProjectReference Include="..\NCoreUtils.Videos.WebService.Core\NCoreUtils.Videos.WebService.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NCoreUtils.Resources.Google.Cloud.Storage" Version="7.0.0.1" Condition=" '$(EnableGoogleCloudStorage)' == 'true' " />
-    <PackageReference Include="NCoreUtils.Resources.Azure.Blob" Version="7.0.0" Condition=" '$(EnableAzureBlobStorage)' == 'true' " />
-    <PackageReference Include="NCoreUtils.Resources.FileSystem" Version="7.0.0" Condition=" '$(EnableLocalStorage)' == 'true' " />
+    <PackageReference Include="NCoreUtils.Resources.Google.Cloud.Storage" Version="7.0.0.2" Condition=" '$(EnableGoogleCloudStorage)' == 'true' " />
+    <PackageReference Include="NCoreUtils.Resources.Azure.Blob" Version="7.0.0.2" Condition=" '$(EnableAzureBlobStorage)' == 'true' " />
+    <PackageReference Include="NCoreUtils.Resources.FileSystem" Version="7.0.0.2" Condition=" '$(EnableLocalStorage)' == 'true' " />
   </ItemGroup>
   <ItemGroup Condition=" '$(EnableGoogleFluentdLogging)' == 'true' ">
     <PackageReference Include="NCoreUtils.AspNetCore.Logging" Version="6.0.0-alpha09" />

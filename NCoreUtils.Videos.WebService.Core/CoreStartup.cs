@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -9,8 +8,13 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCoreUtils.Resources;
+
+#if NET7_0_OR_GREATER
+using NCoreUtils.FFMpeg;
+#endif
 
 namespace NCoreUtils.Videos.WebService;
 
@@ -133,13 +137,19 @@ public abstract class CoreStartup
             });
     }
 
-    public virtual void Configure(IApplicationBuilder app)
+    public virtual void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
     {
 #if DEBUG
         if (Env is not null && Env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
         }
+#endif
+
+#if NET7_0_OR_GREATER
+        AVLogging.LogLevel = AVLogLevel.AV_LOG_INFO;
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        AVLogging.SetLogger(loggerFactory);
 #endif
 
         app

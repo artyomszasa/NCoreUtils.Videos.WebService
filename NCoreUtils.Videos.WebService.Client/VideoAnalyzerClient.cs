@@ -100,7 +100,7 @@ public partial class VideoAnalyzerClient : VideosClient, IVideoAnalyzer
             Logger.LogDebug("Initializing analyze operation.");
             var result = await context.Producer.ConsumeAsync(consumer, cancellationToken).ConfigureAwait(false);
             Logger.LogDebug("Analyze operation completed.");
-            return result ?? new VideoInfo(default, default, default);
+            return result ?? new VideoInfo(default, Array.Empty<MediaStreamInfo>(), default, default);
         }
         catch (Exception exn) when (exn is not VideoException)
         {

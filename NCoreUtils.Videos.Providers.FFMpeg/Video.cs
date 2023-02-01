@@ -144,7 +144,11 @@ public sealed class Video : IVideo
             },
             _ => decoderContext.FrameRate.Reciprocal()
         };
-        encoderContext.SampleAspectRatio = new(size.Width, size.Height);
+        var isar = inStream.SampleAspectRatio;
+        var iratio = new AVRational(inStream.CodecParameters.Width, inStream.CodecParameters.Height).Reduce();
+        var oratio = new AVRational(size.Width, size.Height).Reduce();
+        var osar = isar * oratio / iratio;
+        encoderContext.SampleAspectRatio = osar;
         encoderContext.FieldOrder = AVFieldOrder.AV_FIELD_PROGRESSIVE;
         if (videoSettings is X264Settings settings)
         {

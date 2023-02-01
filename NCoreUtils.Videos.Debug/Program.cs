@@ -21,33 +21,45 @@ internal class Program
                 .AddFilter("FFMpeg", LogLevel.Warning)
                 .AddSimpleConsole(o => o.SingleLine = true)
             )
+            .AddGoogleCloudStorageUtils()
             .AddFFMpegVideoResizer()
             .BuildServiceProvider(true);
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         AVLogging.SetLogger(loggerFactory);
         var resizer = serviceProvider.GetRequiredService<IVideoResizer>();
-        /*
+        var gutils = serviceProvider.GetRequiredService<GoogleCloudStorageUtils>();
+        // var source = new FileSystemResource("/home/artyom/Letöltések/sample-1.5m.mp4", default);
+        var source = new GoogleCloudStorageResource(
+            gutils,
+            "skapeio",
+            "sample-1.5m.mp4"
+        );
+        // var destination = new FileSystemResource("/tmp/out.mp4", default);
+        var destination = new GoogleCloudStorageResource(
+            gutils,
+            "skapeio",
+            "test/output.mp4",
+            "video/mp4",
+            cacheControl: default,
+            isPublic: false
+        );
         resizer.ResizeAsync(
-            new FileSystemResource("/home/artyom/Letöltések/sample-1.5m.mp4", default),
-            new FileSystemResource("/tmp/out.mp4", default),
+            source,
+            destination,
             new ResizeOptions(
-                audioType: "none", //default,
-                videoType: X264Settings.Parse(videoSettings, default),
-                width: 150,
-                height: 100,
-                resizeMode: "inbox",
-                quality: 85,
-                optimize: true,
-                weightX: 0,
-                weightY: 0
+                audioType: "none",
+                videoType: new X264Settings(default, default, "ultrafast"),
+                resizeMode: "exact",
+                width: 420
             )
         ).AsTask().GetAwaiter().GetResult();
-        */
+        /*
         resizer.CreateThumbnailAsync(
             new FileSystemResource("/home/artyom/Letöltések/sample-1.5m.mp4", default),
             new FileSystemResource("/tmp/out.jpg", default),
             new ResizeOptions(),
             default
         ).GetAwaiter().GetResult();
+        */
     }
 }

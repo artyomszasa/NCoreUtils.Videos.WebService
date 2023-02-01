@@ -22,6 +22,11 @@ public class ExactResizerFactory : IResizerFactory
 
     public static ExactResizerFactory Instance { get; } = new ExactResizerFactory();
 
+    private static int EnsureDivisableBy2(int value)
+        => (value & 0x01) == 0
+            ? value
+            : value + 1;
+
     private ExactResizerFactory() { }
 
     public IResizer CreateResizer(IVideo video, ResizeOptions options)
@@ -38,7 +43,7 @@ public class ExactResizerFactory : IResizerFactory
                 var videoSize = video.Size;
                 size = new Size(
                     options.Width.Value,
-                    (int)((double)videoSize.Height / videoSize.Width * options.Width.Value)
+                    EnsureDivisableBy2((int)((double)videoSize.Height / videoSize.Width * options.Width.Value))
                 );
             }
         }
