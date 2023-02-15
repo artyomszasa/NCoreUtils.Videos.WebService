@@ -102,13 +102,48 @@ public sealed class Video : IVideo
 
     public ValueTask<VideoInfo> GetVideoInfoAsync(CancellationToken cancellationToken = default)
     {
-        // var info = new VideoInfo(
-        //     width: VideoStream.CodecParameters.Width,
-        //     height: VideoStream.CodecParameters.Height,
-        //     duration: TimeSpan.FromSeconds(VideoStream.Duration * VideoStream.TimeBase.ToDouble())
-        // );
-        // return new(info);
-        throw new NotImplementedException();
+        var duration = TimeSpan.Zero;
+        var streamInfos = new List<MediaStreamInfo>(InCtx.StreamCount);
+        int? videoStreamIndex = default;
+        int? audioStreamIndex = default;
+        foreach (var stream in InCtx.Streams)
+        {
+            var streamDuration = stream.GetDuration();
+            var codecType = stream.CodecParameters.CodecType;
+            duration = Max(streamDuration, duration);
+            streamInfos.Add(new MediaStreamInfo(
+                stream.Index,
+                codecType switch
+                {
+                    AVMediaType.AVMEDIA_TYPE_VIDEO => MediaStreamTypes.Video,
+                    AVMediaType.AVMEDIA_TYPE_AUDIO => MediaStreamTypes.Audio,
+                    AVMediaType.AVMEDIA_TYPE_UNKNOWN => MediaStreamTypes.Unknown,
+                    _ => MediaStreamTypes.Other
+                },
+                AVCodec.TryFindDecoder(stream.CodecId, out var codec) ? codec.Name : "unknown",
+                duration: streamDuration,
+                width: stream.CodecParameters.Width,
+                height: stream.CodecParameters.Height
+            ));
+            if (codecType == AVMediaType.AVMEDIA_TYPE_VIDEO)
+            {
+                videoStreamIndex ??= stream.Index;
+            }
+            if (codecType == AVMediaType.AVMEDIA_TYPE_AUDIO)
+            {
+                audioStreamIndex ??= stream.Index;
+            }
+        }
+        var info = new VideoInfo(
+            duration,
+            streams: streamInfos,
+            videoStreamIndex: videoStreamIndex,
+            audioStreamIndex: audioStreamIndex
+        );
+        return new(info);
+
+        static TimeSpan Max(TimeSpan a, TimeSpan b)
+            => a > b ? a : b;
     }
 
     private Size GetFinalSize(IReadOnlyList<VideoTransformation> transformations)
