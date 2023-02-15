@@ -4,6 +4,9 @@ namespace NCoreUtils.Videos
 {
     internal static class SpanBuilderExtensions
     {
+        private static bool TryAppendBoolean(this ref SpanBuilder builder, bool value)
+            => builder.TryAppend(value ? "true" : "false");
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryAppendOption(this ref SpanBuilder builder, scoped ref bool first, string key, string? value)
         {
@@ -27,7 +30,7 @@ namespace NCoreUtils.Videos
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryAppendOption(this ref SpanBuilder builder, scoped ref bool first, string key, int? value)
         {
-            if (value.HasValue)
+            if (value is int intValue)
             {
                 if (first)
                 {
@@ -39,7 +42,7 @@ namespace NCoreUtils.Videos
                 }
                 return builder.TryAppend(key)
                     && builder.TryAppend(" = ")
-                    && builder.TryAppend(value.Value);
+                    && builder.TryAppend(intValue);
             }
             return true;
         }
@@ -47,7 +50,7 @@ namespace NCoreUtils.Videos
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryAppendOption(this ref SpanBuilder builder, scoped ref bool first, string key, bool? value)
         {
-            if (value.HasValue)
+            if (value is bool booleanValue)
             {
                 if (first)
                 {
@@ -59,7 +62,7 @@ namespace NCoreUtils.Videos
                 }
                 return builder.TryAppend(key)
                     && builder.TryAppend(" = ")
-                    && builder.TryAppend(value.Value);
+                    && builder.TryAppendBoolean(booleanValue);
             }
             return true;
         }
