@@ -18,16 +18,8 @@ using NCoreUtils.FFMpeg;
 
 namespace NCoreUtils.Videos.WebService;
 
-public abstract class CoreStartup
+public abstract class CoreStartup : Generic.CoreStartup
 {
-    private sealed class ConfigureJson : IConfigureOptions<JsonSerializerOptions>
-    {
-        public void Configure(JsonSerializerOptions options)
-        {
-            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        }
-    }
-
     private static ForwardedHeadersOptions ConfigureForwardedHeaders()
     {
         var opts = new ForwardedHeadersOptions();
@@ -37,15 +29,11 @@ public abstract class CoreStartup
         return opts;
     }
 
-    private readonly IConfiguration Configuration;
-
-    private readonly IWebHostEnvironment? Env;
+    protected readonly IWebHostEnvironment? Env;
 
     protected CoreStartup(IConfiguration configuration, IWebHostEnvironment env)
-    {
-        Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        Env = env ?? throw new ArgumentNullException(nameof(env));
-    }
+        : base(configuration)
+        => Env = env ?? throw new ArgumentNullException(nameof(env));
 
     protected virtual void AddHttpContextAccessor(IServiceCollection services)
     {
@@ -53,74 +41,18 @@ public abstract class CoreStartup
             .AddHttpContextAccessor();
     }
 
-    protected virtual IVideoResizerOptions GetVideoResizerOptions()
+    protected override void ConfigureResourceFactories(OptionsBuilder<CompositeResourceFactoryConfiguration> b)
     {
-        var section = Configuration.GetSection("Videos");
-        var options = new VideoResizerOptions();
-        var rawMemoryLimit = section[nameof(VideoResizerOptions.MemoryLimit)];
-        if (rawMemoryLimit is not null)
-        {
-            if (long.TryParse(rawMemoryLimit, NumberStyles.Integer, CultureInfo.InvariantCulture, out var memoryLimit))
-            {
-                options.MemoryLimit = memoryLimit;
-            }
-            else
-            {
-                throw new InvalidOperationException($"Invalid value for Videos:{nameof(VideoResizerOptions.MemoryLimit)}: \"{rawMemoryLimit}\".");
-            }
-        }
-        foreach (var (key, value) in section.GetSection(nameof(VideoResizerOptions.Quality)).AsEnumerable())
-        {
-            if (value is not null)
-            {
-                if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ivalue))
-                {
-                    options.Quality[key] = ivalue;
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Invalid value for Videos:{nameof(VideoResizerOptions.Quality)}:{key}: \"{value}\".");
-                }
-            }
-        }
-        foreach (var (key, value) in section.GetSection(nameof(VideoResizerOptions.Optimize)).AsEnumerable())
-        {
-            if (value is not null)
-            {
-                if (bool.TryParse(value, out var bvalue))
-                {
-                    options.Optimize[key] = bvalue;
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Invalid value for Videos:{nameof(VideoResizerOptions.Optimize)}:{key}: \"{value}\".");
-                }
-            }
-        }
-        return options;
+        b.AddAspNetCoreResourceFactory();
     }
 
-    protected abstract void ConfigureResourceFactories(OptionsBuilder<CompositeResourceFactoryConfiguration> b);
-
-    public virtual void ConfigureServices(IServiceCollection services)
+    public override void ConfigureServices(IServiceCollection services)
     {
         AddHttpContextAccessor(services);
 
         services
-            // JSON Serialization
-            .AddOptions<JsonSerializerOptions>()
-                .Configure(opts => opts.PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
-                .Services
-            // video resizer options
-            .AddSingleton(GetVideoResizerOptions())
             // http client factory
             .AddHttpClient()
-            // Video resizer implementation
-#if NET7_0_OR_GREATER
-            .AddFFMpegVideoResizer()
-#else
-            .AddXabeVideoResizer()
-#endif
             // CORS
             .AddCors(b => b.AddDefaultPolicy(opts => opts
                 .AllowAnyHeader()
@@ -129,27 +61,18 @@ public abstract class CoreStartup
                 // must be at least 2 domains for CORS middleware to send Vary: Origin
                 .WithOrigins("https://example.com", "http://127.0.0.1")
                 .SetIsOriginAllowed(_ => true)
-            ))
-            // source/destination handlers
-            .AddCompositeResourceFactory(b =>
-            {
-                ConfigureResourceFactories(b.AddAspNetCoreResourceFactory());
-            });
+            ));
+        base.ConfigureServices(services);
     }
 
-    public virtual void Configure(IApplicationBuilder app, IServiceProvider serviceProvider)
+    public virtual void Configure(IServiceProvider serviceProvider, IApplicationBuilder app)
     {
+        ConfigureBase(serviceProvider);
 #if DEBUG
         if (Env is not null && Env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
         }
-#endif
-
-#if NET7_0_OR_GREATER
-        AVLogging.LogLevel = AVLogLevel.AV_LOG_INFO;
-        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-        AVLogging.SetLogger(loggerFactory);
 #endif
 
         app

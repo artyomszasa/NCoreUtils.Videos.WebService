@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace NCoreUtils.Videos.WebService;
 
-internal static class ErrorSerialization
+public static class ErrorSerialization
 {
     public static ValueTask<VideoErrorData?> DeserializeVideoErrorDataAsync(System.IO.Stream stream, CancellationToken cancellationToken)
         => JsonSerializer.DeserializeAsync(stream, VideoErrorSerializerContext.Default.VideoErrorData, cancellationToken);

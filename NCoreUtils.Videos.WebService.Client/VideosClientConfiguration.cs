@@ -14,6 +14,8 @@ namespace NCoreUtils.Videos.WebService
 
         public bool CacheCapabilities { get; set; } = true;
 
+        public bool BufferRequests { get; set; } = false;
+
         internal VideosClientConfiguration<T> AsTyped<T>()
             where T : VideosClient
             => new()
@@ -21,6 +23,7 @@ namespace NCoreUtils.Videos.WebService
                 EndPoint = EndPoint,
                 AllowInlineData = AllowInlineData,
                 CacheCapabilities = CacheCapabilities,
+                BufferRequests = BufferRequests,
                 HttpClient = HttpClient
             };
     }

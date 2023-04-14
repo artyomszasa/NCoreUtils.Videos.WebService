@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NCoreUtils.Videos.WebService;
 using NCoreUtils.IO;
+using System.IO;
 
 namespace NCoreUtils.Videos;
 
@@ -127,7 +128,18 @@ public partial class VideoResizerClient : VideosClient, IVideoResizer
                 // both source and destination are serializable
                 consumer = StreamConsumer.Create(async (input, cancellationToken) =>
                 {
-                    using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = new JsonStreamContent(input) };
+                    HttpContent content;
+                    if (Configuration.BufferRequests)
+                    {
+                        await using var bufferStream = new MemoryStream();
+                        await input.CopyToAsync(bufferStream, 16 * 1024, cancellationToken).ConfigureAwait(false);
+                        content = new ByteArrayContent(bufferStream.ToArray());
+                    }
+                    else
+                    {
+                        content = new JsonStreamContent(input);
+                    }
+                    using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
                     using var client = CreateHttpClient();
                     using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                     await CheckAsync(response, cancellationToken);
@@ -181,10 +193,98 @@ public partial class VideoResizerClient : VideosClient, IVideoResizer
             throw new RemoteVideoException(endpoint, ErrorCodes.GenericError, "Error has occurred while performing operation.", exn);
         }
     }
+
     public ValueTask ResizeAsync(IReadableResource source, IWritableResource destination, ResizeOptions options, CancellationToken cancellationToken)
     {
         var queryString = CreateQueryString(options);
         return InvokeResizeAsync(source, destination, queryString, Configuration.EndPoint, cancellationToken);
+    }
+
+    protected virtual async ValueTask InvokeThumbnailAsync(
+        IReadableResource source,
+        IWritableResource destination,
+        string endpoint,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var scope = Logger.BeginScope(Guid.NewGuid());
+        Logger.LogDebug("Thumbnail operation starting.");
+        var uri = new UriBuilder(endpoint).AppendPathSegment(Routes.Thumbnail).Uri;
+        var context = await GetOperationContextAsync(source, destination, endpoint, cancellationToken).ConfigureAwait(false);
+        Logger.LogDebug("Computed context for thumbnail operation ({ContentType}).", context.ContentType);
+        try
+        {
+            IStreamConsumer consumer;
+            if (context.Destination is null)
+            {
+                // both source and destination are serializable
+                consumer = StreamConsumer.Create(async (input, cancellationToken) =>
+                {
+                    HttpContent content;
+                    if (Configuration.BufferRequests)
+                    {
+                        await using var bufferStream = new MemoryStream();
+                        await input.CopyToAsync(bufferStream, 16 * 1024, cancellationToken).ConfigureAwait(false);
+                        content = new ByteArrayContent(bufferStream.ToArray());
+                        content.Headers.ContentType = JsonStreamContent.ApplicationJson;
+                    }
+                    else
+                    {
+                        content = new JsonStreamContent(input);
+                    }
+                    using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+                    using var client = CreateHttpClient();
+                    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    await CheckAsync(response, cancellationToken);
+                });
+            }
+            else
+            {
+                // destination is not serializable, source does either support serialization or not..
+                var outputMime = "application/octet-stream";
+                var finalConsumer = StreamConsumer.Delay(_ =>
+                {
+                    Logger.LogDebug("Creating consumer for thumbnail operation");
+                    return new ValueTask<IStreamConsumer>(context.Destination.CreateConsumer(new ResourceInfo(outputMime)));
+                });
+                consumer = finalConsumer.Chain(StreamTransformation.Create(async (input, output, cancellationToken) =>
+                {
+                    Logger.LogDebug("Sending thumbnail request.");
+                    using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = new TypedStreamContent(input, context.ContentType) };
+                    using var client = CreateHttpClient();
+                    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    Logger.LogDebug("Received response of the thumbnail request.");
+                    await CheckAsync(response, cancellationToken).ConfigureAwait(false);
+                    outputMime = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+                    await using var stream = await response.Content
+#if NETSTANDARD2_1
+                        .ReadAsStreamAsync()
+#else
+                        .ReadAsStreamAsync(cancellationToken)
+#endif
+                        .ConfigureAwait(false);
+                    await stream.CopyToAsync(output, 16 * 1024, cancellationToken).ConfigureAwait(false);
+                    Logger.LogDebug("Done processing response of the thumbnail request.");
+                }));
+            }
+            Logger.LogDebug("Initializing thumbnail operation.");
+            await context.Producer.ConsumeAsync(consumer, cancellationToken).ConfigureAwait(false);
+            Logger.LogDebug("Thumbnail operation completed.");
+        }
+        catch (Exception exn) when (exn is not VideoException)
+        {
+            if (IsSocketRelated(exn, out var socketExn))
+            {
+                if (IsBrokenPipe(socketExn) && source.Reusable)
+                {
+                    Logger.LogWarning(exn, "Failed to perform operation due to connection error, retrying...");
+                    await InvokeThumbnailAsync(source, destination, endpoint, cancellationToken).ConfigureAwait(false);
+                    return;
+                }
+                throw new RemoteVideoConnectivityException(endpoint, socketExn.SocketErrorCode, "Network related error has occured while performing operation.", exn);
+            }
+            throw new RemoteVideoException(endpoint, ErrorCodes.GenericError, "Error has occurred while performing operation.", exn);
+        }
     }
 
     public ValueTask CreateThumbnailAsync(
@@ -192,7 +292,5 @@ public partial class VideoResizerClient : VideosClient, IVideoResizer
         IWritableResource destination,
         ResizeOptions options,
         CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
-    }
+        => InvokeThumbnailAsync(source, destination, Configuration.EndPoint, cancellationToken);
 }

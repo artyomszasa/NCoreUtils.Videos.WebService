@@ -51,20 +51,12 @@ namespace NCoreUtils.Videos.WebService
 
         private readonly IImageResizer _imageResizer;
 
-        //private readonly StorageClient _storageClient;
-
-        private readonly IHttpClientFactory? _httpClientFactory;
-
         public VideoResizer(
             ILogger<IVideoResizer> logger,
-            IImageResizer imageResizer,
-            //StorageClient storageClient,
-            IHttpClientFactory? httpClientFactory)
+            IImageResizer imageResizer)
         {
             _logger = logger;
             _imageResizer = imageResizer ?? throw new ArgumentNullException(nameof(imageResizer));
-            //_storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
-            _httpClientFactory = httpClientFactory;
         }
 
         private int RoundTodivisibleByTwo(double number)

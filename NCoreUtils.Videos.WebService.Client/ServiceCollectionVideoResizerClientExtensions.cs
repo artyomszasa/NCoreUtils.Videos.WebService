@@ -38,6 +38,11 @@ public static class ServiceCollectionVideoResizerClientExtensions
         {
             config.CacheCapabilities = bool.Parse(rawCacheCapabilities);
         }
+        var rawBufferRequests = configuration[nameof(config.BufferRequests)];
+        if (!string.IsNullOrEmpty(rawBufferRequests))
+        {
+            config.BufferRequests = bool.Parse(rawBufferRequests);
+        }
     }
 
     public static IServiceCollection AddVideoResizerClient(
@@ -62,12 +67,14 @@ public static class ServiceCollectionVideoResizerClientExtensions
         string endpoint,
         bool allowInlineData = false,
         bool cacheCapabilities = true,
+        bool bufferRequests = false,
         string httpClient = VideosClientConfiguration.DefaultHttpClient)
         => services.AddVideoResizerClient(new VideosClientConfiguration
         {
             EndPoint = endpoint,
             AllowInlineData = allowInlineData,
             CacheCapabilities = cacheCapabilities,
+            BufferRequests = bufferRequests,
             HttpClient = httpClient
         });
 
@@ -106,12 +113,14 @@ public static class ServiceCollectionVideoResizerClientExtensions
         string endpoint,
         bool allowInlineData = false,
         bool cacheCapabilities = true,
+        bool bufferRequests = false,
         string httpClient = VideosClientConfiguration.DefaultHttpClient)
         => services.AddVideoAnalyzerClient(new VideosClientConfiguration
         {
             EndPoint = endpoint,
             AllowInlineData = allowInlineData,
             CacheCapabilities = cacheCapabilities,
+            BufferRequests = bufferRequests,
             HttpClient = httpClient
         });
 

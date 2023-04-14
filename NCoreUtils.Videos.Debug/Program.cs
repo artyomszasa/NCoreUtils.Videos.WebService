@@ -17,8 +17,8 @@ internal class Program
             .AddLogging(b => b
                 .ClearProviders()
                 .SetMinimumLevel(LogLevel.Debug)
-                .AddFilter("NCoreUtils.FFMpeg", LogLevel.Warning)
-                .AddFilter("FFMpeg", LogLevel.Warning)
+                .AddFilter("NCoreUtils.FFMpeg", LogLevel.Debug)
+                .AddFilter("FFMpeg", LogLevel.Debug)
                 .AddSimpleConsole(o => o.SingleLine = true)
             )
             .AddGoogleCloudStorageUtils()
@@ -28,38 +28,36 @@ internal class Program
         AVLogging.SetLogger(loggerFactory);
         var resizer = serviceProvider.GetRequiredService<IVideoResizer>();
         var gutils = serviceProvider.GetRequiredService<GoogleCloudStorageUtils>();
-        // var source = new FileSystemResource("/home/artyom/Letöltések/sample-1.5m.mp4", default);
-        var source = new GoogleCloudStorageResource(
-            gutils,
-            "skapeio",
-            "sample-1.5m.mp4"
-        );
-        // var destination = new FileSystemResource("/tmp/out.mp4", default);
-        var destination = new GoogleCloudStorageResource(
-            gutils,
-            "skapeio",
-            "test/output.mp4",
-            "video/mp4",
-            cacheControl: default,
-            isPublic: false
-        );
-        resizer.ResizeAsync(
+        var source = new FileSystemResource("/home/artyom/Letöltések/sample-video.mp4", default);
+        // var source = new GoogleCloudStorageResource(
+        //     gutils,
+        //     "skapeio",
+        //     "sample-1.5m.mp4"
+        // );
+        var destination = new FileSystemResource("/tmp/out.jpg", default);
+        // var destination = new GoogleCloudStorageResource(
+        //     gutils,
+        //     "skapeio",
+        //     "test/output.mp4",
+        //     "video/mp4",
+        //     cacheControl: default,
+        //     isPublic: false
+        // );
+        // resizer.ResizeAsync(
+        //     source,
+        //     destination,
+        //     new ResizeOptions(
+        //         audioType: "none",
+        //         videoType: new X264Settings(default, default, "ultrafast"),
+        //         resizeMode: "exact",
+        //         width: 420
+        //     )
+        // ).AsTask().GetAwaiter().GetResult();
+        resizer.CreateThumbnailAsync(
             source,
             destination,
-            new ResizeOptions(
-                audioType: "none",
-                videoType: new X264Settings(default, default, "ultrafast"),
-                resizeMode: "exact",
-                width: 420
-            )
-        ).AsTask().GetAwaiter().GetResult();
-        /*
-        resizer.CreateThumbnailAsync(
-            new FileSystemResource("/home/artyom/Letöltések/sample-1.5m.mp4", default),
-            new FileSystemResource("/tmp/out.jpg", default),
             new ResizeOptions(),
             default
         ).GetAwaiter().GetResult();
-        */
     }
 }

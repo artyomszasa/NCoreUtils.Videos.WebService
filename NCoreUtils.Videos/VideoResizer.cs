@@ -12,6 +12,13 @@ namespace NCoreUtils.Videos;
 
 public class VideoResizer : IVideoResizer, IVideoAnalyzer
 {
+    public const int DefaultBufferSize = 32 * 1024;
+
+    private static Random Random { get; } = new(unchecked((int)(DateTimeOffset.Now.UtcTicks % ((long)int.MaxValue + 1L))));
+
+    private static string GetTempFileName()
+        => Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}-{Random.Next(100):D2}");
+
     protected ILogger Logger { get; }
 
     protected IVideoProvider Provider { get; }
@@ -59,10 +66,30 @@ public class VideoResizer : IVideoResizer, IVideoAnalyzer
         Action<string> setContentType,
         CancellationToken cancellationToken)
     {
+        // FIXME: generalize buffering
         // FIXME: MOOV?
-        await using var bufferedOutput = new FileStream("/tmp/buffer.mp4", FileMode.Create, FileAccess.ReadWrite, FileShare.None, 32 * 1024, FileOptions.Asynchronous | FileOptions.DeleteOnClose);
-
-        await using var video = await Provider.FromStreamAsync(input, cancellationToken);
+        await using var bufferedOutput = new FileStream(
+            path: GetTempFileName(),
+            mode: FileMode.CreateNew,
+            access: FileAccess.ReadWrite,
+            share: FileShare.None,
+            bufferSize: DefaultBufferSize,
+            options: FileOptions.Asynchronous | FileOptions.DeleteOnClose
+        );
+        // NOTE: mp4 may contain moov data at the end of the stream --> stream must be buffered before
+        // processing
+        // FIXME: generalize buffering
+        await using var bufferedInput = new FileStream(
+            path: GetTempFileName(),
+            mode: FileMode.CreateNew,
+            access: FileAccess.ReadWrite,
+            share: FileShare.None,
+            bufferSize: DefaultBufferSize,
+            options: FileOptions.RandomAccess | FileOptions.DeleteOnClose | FileOptions.Asynchronous
+        );
+        await input.CopyToAsync(bufferedInput, DefaultBufferSize, cancellationToken).ConfigureAwait(false);
+        bufferedInput.Seek(0, SeekOrigin.Begin);
+        await using var video = await Provider.FromStreamAsync(bufferedInput, cancellationToken).ConfigureAwait(false);
         var (isExplicit, videoSettings) = (false, options.VideoType);
         var quality = DecideQuality(options, videoSettings);
         var optimize = DecideOptimize(options, videoSettings);
@@ -99,10 +126,23 @@ public class VideoResizer : IVideoResizer, IVideoAnalyzer
         => source.CreateProducer()
             .Chain(StreamTransformation.Create(async (input, output, cancellationToken) =>
             {
-                await using var video = await Provider.FromStreamAsync(input, cancellationToken);
+                // NOTE: mp4 may contain moov data at the end of the stream --> stream must be buffered before
+                // processing
+                // FIXME: generalize buffering
+                await using var bufferedInput = new FileStream(
+                    path: GetTempFileName(),
+                    mode: FileMode.CreateNew,
+                    access: FileAccess.ReadWrite,
+                    share: FileShare.None,
+                    bufferSize: DefaultBufferSize,
+                    options: FileOptions.RandomAccess | FileOptions.DeleteOnClose | FileOptions.Asynchronous
+                );
+                await input.CopyToAsync(bufferedInput, DefaultBufferSize, cancellationToken).ConfigureAwait(false);
+                bufferedInput.Seek(0, SeekOrigin.Begin);
+                await using var video = await Provider.FromStreamAsync(bufferedInput, cancellationToken).ConfigureAwait(false);
                 await video.WriteThumbnailAsync(output, TimeSpan.FromSeconds(10), cancellationToken);
             }))
-            .ConsumeAsync(destination.CreateConsumer(new ResourceInfo("image/png")), cancellationToken);
+            .ConsumeAsync(destination.CreateConsumer(new ResourceInfo("image/jpeg")), cancellationToken);
 
     public ValueTask<VideoInfo> AnalyzeAsync(IReadableResource source, CancellationToken cancellationToken)
         => source.CreateProducer()

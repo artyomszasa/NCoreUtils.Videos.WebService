@@ -6,8 +6,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NCoreUtils.Videos.Abstractions\NCoreUtils.Videos.Abstractions.csproj" />
+    <!--
+    <ProjectReference Include="..\..\NCoreUtils.FFMpeg\NCoreUtils.FFMpeg\NCoreUtils.FFMpeg.csproj" />
+    -->
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NCoreUtils.FFMpeg-x64" Version="7.0.0-alpha02" />
+    <PackageReference Include="NCoreUtils.FFMpeg-x64" Version="7.0.0-alpha03" />
   </ItemGroup>
 </Project>

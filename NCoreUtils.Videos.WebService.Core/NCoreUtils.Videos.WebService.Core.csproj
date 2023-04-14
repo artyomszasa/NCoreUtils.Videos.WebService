@@ -1,18 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net7.0' ">
-    <ProjectReference Include="..\NCoreUtils.Videos.FFMpeg\NCoreUtils.Videos.FFMpeg.csproj" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' != 'net7.0' ">
-    <ProjectReference Include="..\NCoreUtils.Videos.Xabe\NCoreUtils.Videos.Xabe.csproj" />
+  <ItemGroup>
+    <ProjectReference Include="..\NCoreUtils.Videos.WebService.Core.Generic\NCoreUtils.Videos.WebService.Core.Generic.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NCoreUtils.Videos.WebService.Shared\NCoreUtils.Videos.WebService.Shared.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="NCoreUtils.Resources" Version="7.0.0" />
     <PackageReference Include="NCoreUtils.Resources.AspNetCore" Version="7.0.0" />
   </ItemGroup>
   <ItemGroup>
