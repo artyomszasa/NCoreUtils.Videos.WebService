@@ -9,7 +9,7 @@ namespace NCoreUtils;
 
 public static class ServiceCollectionVideoResizerClientExtensions
 {
-    public static string GetRequiredValue(this IConfiguration configuration, string key)
+    private static string GetRequiredValue(this IConfiguration configuration, string key)
     {
         var value = configuration[key];
         if (string.IsNullOrEmpty(value))
