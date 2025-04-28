@@ -3,7 +3,9 @@ using System.Runtime.Serialization;
 
 namespace NCoreUtils.Videos;
 
+#if !NET8_0_OR_GREATER
 [Serializable]
+#endif
 public class VideoResizerException : Exception
 {
     public string ErrorType { get; }
@@ -20,6 +22,7 @@ public class VideoResizerException : Exception
         ErrorType = errorType ?? ErrorCodes.GenericError;
     }
 
+#if !NET8_0_OR_GREATER
     protected VideoResizerException(SerializationInfo info, StreamingContext context)
         : base(info, context)
         => ErrorType = info.GetString(nameof(ErrorType)) ?? string.Empty;
@@ -29,4 +32,5 @@ public class VideoResizerException : Exception
         base.GetObjectData(info, context);
         info.AddValue(nameof(ErrorType), ErrorType);
     }
+#endif
 }

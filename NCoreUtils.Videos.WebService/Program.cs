@@ -1,87 +1,44 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Net;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-#if EnableGoogleFluentdLogging
-using NCoreUtils.Logging;
-#endif
 
-namespace NCoreUtils.Videos.WebService
+namespace NCoreUtils.Videos;
+
+public class Program
 {
-    public class Program
+    private static IConfiguration CreateDefaultConfiguration()
+        => new ConfigurationBuilder()
+            .SetBasePath(Environment.CurrentDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+            .AddJsonFile("secrets/appsettings.json", optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables("VIDEOS_")
+            .Build();
+
+    public static void Main(string[] args)
     {
-        static IPEndPoint ParseEndpoint(string? input)
+        var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") switch
         {
-            if (string.IsNullOrEmpty(input))
+            null or "" => Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") switch
             {
-                return new IPEndPoint(IPAddress.Loopback, 5000);
-            }
-            var portIndex = input.LastIndexOf(':');
-            if (-1 == portIndex)
-            {
-                return new IPEndPoint(IPAddress.Parse(input), 5000);
-            }
-            else
-            {
-                return new IPEndPoint(IPAddress.Parse(input.AsSpan(0, portIndex)), int.Parse(input.AsSpan()[(portIndex + 1)..]));
-            }
-        }
+                null or "" => "Development",
+                string dotnetEnv => dotnetEnv
+            },
+            string aspNetCoreEnv => aspNetCoreEnv
+        };
 
-        private static IConfigurationRoot LoadConfiguration()
-            => new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-                .AddJsonFile("secrets/appsettings.json", optional: true, reloadOnChange: false)
-                .AddEnvironmentVariables("VIDEOS_")
-                .Build();
-
-#if EnableGoogleCloudStorage
-        [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(global::Google.Apis.Auth.OAuth2.JsonCredentialParameters))]
-#endif
-        public static void Main(string[] args)
+        var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions
         {
-            CreateHostBuilder(args).Build().Run();
-        }
-
-#pragma warning disable IDE0060
-        public static IHostBuilder CreateHostBuilder(string[] args)
-#pragma warning restore IDE0060
-        {
-            var configuration = LoadConfiguration();
-            return new HostBuilder()
-                .UseContentRoot(Environment.CurrentDirectory)
-                .ConfigureAppConfiguration(b => b.AddConfiguration(configuration))
-                .ConfigureLogging((ctx, builder) =>
-                {
-                    builder
-                        .ClearProviders()
-                        .AddConfiguration(configuration)
-#if EnableGoogleFluentdLogging
-                        .AddGoogleFluentd<AspNetCoreLoggerProvider>(projectId: configuration["Google:ProjectId"]);
-#else
-                        .AddConsole();
-#endif
-                })
-                .ConfigureWebHost(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                    webBuilder.UseKestrel(o =>
-                    {
-                        // Google Cloud Run passes port to listen on through PORT env variable.
-                        var endpoint = Environment.GetEnvironmentVariable("PORT") switch
-                        {
-                            null => ParseEndpoint(Environment.GetEnvironmentVariable("LISTEN")),
-                            string portAsString => int.TryParse(portAsString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port)
-                                ? new IPEndPoint(IPAddress.Any, port)
-                                : ParseEndpoint(Environment.GetEnvironmentVariable("LISTEN"))
-                        };
-                        o.Listen(endpoint);
-                        o.AllowSynchronousIO = true;
-                    });
-                });
-        }
+            EnvironmentName = environmentName,
+            ContentRootPath = Environment.CurrentDirectory
+        });
+        var configuration = CreateDefaultConfiguration();
+        builder.Configuration.AddConfiguration(configuration);
+        builder.Logging.ConfigureWebServiceLogging(configuration);
+        builder.UseMinimalKestrel();
+        var startup = new Startup(configuration, builder.Environment);
+        startup.ConfigureServices(builder.Services);
+        var app = builder.Build();
+        startup.Configure(app.Services, app);
+        app.Run();
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using NCoreUtils.Videos.Internal;
 
@@ -6,7 +7,7 @@ namespace NCoreUtils.Videos;
 
 public static class ServiceCollectionVideosExtensions
 {
-    public static IServiceCollection AddVideoResizer<TProvider>(
+    public static IServiceCollection AddVideoResizer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TProvider>(
         this IServiceCollection services,
         ServiceLifetime serviceLifetime,
         bool suppressDefaultResizers = false,
@@ -49,7 +50,7 @@ public static class ServiceCollectionVideosExtensions
         return services;
     }
 
-    public static IServiceCollection AddVideoResizer<TProvider>(
+    public static IServiceCollection AddVideoResizer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TProvider>(
         this IServiceCollection services,
         bool suppressDefaultResizers = false,
         Action<ResizerCollectionBuilder>? configure = default)

@@ -3,26 +3,19 @@ using NCoreUtils.Memory;
 
 namespace NCoreUtils.Videos.Logging;
 
-public struct ResizingVideoEntry : ISpanExactEmplaceable
+public readonly struct ResizingVideoEntry(string videoSettings, bool isExplicit, int quality, bool optimize)
+    : ISpanExactEmplaceable
 {
     public static Func<ResizingVideoEntry, Exception?, string> Formatter { get; } =
         (entry, _) => entry.ToString();
 
-    public string VideoSettings { get; }
+    public string VideoSettings { get; } = videoSettings;
 
-    public bool IsExplicit { get; }
+    public bool IsExplicit { get; } = isExplicit;
 
-    public int Quality { get; }
+    public int Quality { get; } = quality;
 
-    public bool Optimize { get; }
-
-    public ResizingVideoEntry(string videoSettings, bool isExplicit, int quality, bool optimize)
-    {
-        VideoSettings = videoSettings;
-        IsExplicit = isExplicit;
-        Quality = quality;
-        Optimize = optimize;
-    }
+    public bool Optimize { get; } = optimize;
 
     private int GetEmplaceBufferSize()
     {
@@ -44,7 +37,7 @@ public struct ResizingVideoEntry : ISpanExactEmplaceable
         => GetEmplaceBufferSize();
 
 #if NET6_0_OR_GREATER
-    string IFormattable.ToString(string? format, System.IFormatProvider? formatProvider)
+    string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         => ToString();
 #else
     public bool TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider)
@@ -73,7 +66,7 @@ public struct ResizingVideoEntry : ISpanExactEmplaceable
         if (builder.TryAppend(", Quality = ")
             && builder.TryAppend(Quality)
             && builder.TryAppend(", Optimize = ")
-            && builder.TryAppend(Optimize)
+            && builder.TryAppend(Optimize ? "true" : "false")
             && builder.TryAppend("]."))
         {
             used = builder.Length;

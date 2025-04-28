@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0.203-bullseye-slim AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:8.0.408-noble AS build-env
 RUN apt update && apt install -y clang zlib1g-dev && apt clean
 WORKDIR /app
 # RESTORE
@@ -12,11 +12,11 @@ COPY ./NCoreUtils.Videos.WebService.Shared/*.csproj ./NCoreUtils.Videos.WebServi
 COPY ./NCoreUtils.Videos.WebService.Core/*.csproj ./NCoreUtils.Videos.WebService.Core/
 COPY ./NCoreUtils.Videos.WebService.Core.Generic/*.csproj ./NCoreUtils.Videos.WebService.Core.Generic/
 COPY ./NCoreUtils.Videos.WebService/*.csproj ./NCoreUtils.Videos.WebService/
-RUN sed -i 's/net7.0;net6.0;netstandard2.1/net7.0/' ./NCoreUtils.Videos.WebService.Shared/NCoreUtils.Videos.WebService.Shared.csproj && \
-    sed -i 's/net7.0;net6.0/net7.0/' ./NCoreUtils.Videos.WebService.Core/NCoreUtils.Videos.WebService.Core.csproj && \
-    sed -i 's/net7.0;net6.0/net7.0/' ./NCoreUtils.Videos.WebService.Core.Generic/NCoreUtils.Videos.WebService.Core.Generic.csproj && \
-    sed -i 's/net7.0;net6.0;netstandard2.1/net7.0/' ./NCoreUtils.Videos/NCoreUtils.Videos.csproj && \
-    sed -i 's/net7.0;net6.0;netstandard2.1/net7.0/' ./NCoreUtils.Videos.Abstractions/NCoreUtils.Videos.Abstractions.csproj
+RUN sed -i 's/net8.0;net6.0;netstandard2.1/net8.0/' ./NCoreUtils.Videos.WebService.Shared/NCoreUtils.Videos.WebService.Shared.csproj && \
+    sed -i 's/net8.0;net6.0/net8.0/' ./NCoreUtils.Videos.WebService.Core/NCoreUtils.Videos.WebService.Core.csproj && \
+    sed -i 's/net8.0;net6.0/net8.0/' ./NCoreUtils.Videos.WebService.Core.Generic/NCoreUtils.Videos.WebService.Core.Generic.csproj && \
+    sed -i 's/net8.0;net6.0;netstandard2.1/net8.0/' ./NCoreUtils.Videos/NCoreUtils.Videos.csproj && \
+    sed -i 's/net8.0;net6.0;netstandard2.1/net8.0/' ./NCoreUtils.Videos.Abstractions/NCoreUtils.Videos.Abstractions.csproj
 RUN dotnet restore ./NCoreUtils.Videos.WebService/NCoreUtils.Videos.WebService.csproj -r linux-x64 -v n -p EnableAzureBlobStorage=false -p EnableGoogleFluentdLogging=true
 # PUBLISH
 COPY ./NCoreUtils.Videos.Abstractions/*.cs ./NCoreUtils.Videos.Abstractions/
@@ -32,11 +32,12 @@ COPY ./NCoreUtils.Videos.WebService.Core.Generic/Generic/ ./NCoreUtils.Videos.We
 COPY ./NCoreUtils.Videos.WebService/*.cs ./NCoreUtils.Videos.WebService/
 COPY ./NCoreUtils.Videos.WebService/*.trim.xml ./NCoreUtils.Videos.WebService/
 RUN dotnet publish ./NCoreUtils.Videos.WebService/NCoreUtils.Videos.WebService.csproj -r linux-x64 -c Release --self-contained -p PublishAot=true -p EnableAzureBlobStorage=false -p EnableGoogleFluentdLogging=true -o /app/out
+RUN rm /app/out/*.pdb /app/out/*.dbg
+# RUN ls -lh /app/out && exit -1
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:7.0.5-bullseye-slim
+FROM mcr.microsoft.com/dotnet/runtime-deps:8.0.15-noble-chiseled
 WORKDIR /app
 ENV DOTNET_ENVIRONMENT=Production \
-    ASPNETCORE_ENVIRONMENT=Production \
-    LISTEN=0.0.0.0:80
+    ASPNETCORE_ENVIRONMENT=Production
 COPY --from=build-env /app/out ./
 ENTRYPOINT ["./NCoreUtils.Videos.WebService"]

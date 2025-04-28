@@ -11,8 +11,8 @@ public abstract class VideoSettings
     , ISpanParsable<VideoSettings>
 #endif
 {
-    public static NCoreUtils.Memory.IEmplacer<VideoSettings> Emplacer { get; }
-            = new NCoreUtils.Memory.SpanEmplaceableEmplacer<VideoSettings>();
+    public static IEmplacer<VideoSettings> Emplacer { get; }
+            = new SpanEmplaceableEmplacer<VideoSettings>();
 
     public static VideoSettings Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
         => TryParse(s, provider, out var result)

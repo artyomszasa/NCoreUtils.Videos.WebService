@@ -3,15 +3,12 @@ using NCoreUtils.Memory;
 
 namespace NCoreUtils.Videos.Logging;
 
-public struct CreatingTransformationEntry : ISpanExactEmplaceable
+public readonly struct CreatingTransformationEntry(ResizeOptions options) : ISpanExactEmplaceable
 {
     public static Func<CreatingTransformationEntry, Exception?, string> Formatter { get; } =
         (entry, _) => entry.ToString();
 
-    public ResizeOptions Options { get; }
-
-    public CreatingTransformationEntry(ResizeOptions options)
-        => Options = options ?? throw new ArgumentNullException(nameof(options));
+    public ResizeOptions Options { get; } = options ?? throw new ArgumentNullException(nameof(options));
 
     private int GetEmplaceBufferSize()
         => 38 + Options.GetEmplaceBufferSize();
@@ -26,9 +23,12 @@ public struct CreatingTransformationEntry : ISpanExactEmplaceable
         => GetEmplaceBufferSize();
 
 #if NET6_0_OR_GREATER
-    string IFormattable.ToString(string? format, System.IFormatProvider? formatProvider)
+
+    string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         => ToString();
+
 #else
+
     public bool TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider)
         => TryEmplace(destination, out charsWritten);
 
@@ -40,13 +40,14 @@ public struct CreatingTransformationEntry : ISpanExactEmplaceable
         }
         throw new ArgumentException("Insufficient buffer size.", nameof(span));
     }
+
 #endif
 
     public bool TryEmplace(Span<char> span, out int used)
     {
         var builder = new SpanBuilder(span);
         if (builder.TryAppend("Creating transformation with options ")
-            && builder.TryAppend(Options)
+            && builder.TryAppend(Options, ResizeOptions.Emplacer)
             && builder.TryAppend('.'))
         {
             used = builder.Length;

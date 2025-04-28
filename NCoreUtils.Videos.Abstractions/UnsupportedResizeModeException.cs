@@ -6,7 +6,9 @@ namespace NCoreUtils.Videos;
 /// <summary>
 /// Thrown if the requested sizing is not supported.
 /// </summary>
+#if !NET8_0_OR_GREATER
 [Serializable]
+#endif
 public class UnsupportedResizeModeException : VideoException
 {
     static int? GetNInt(SerializationInfo info, string key)
@@ -21,6 +23,7 @@ public class UnsupportedResizeModeException : VideoException
 
     public int? Height { get; }
 
+#if !NET8_0_OR_GREATER
     protected UnsupportedResizeModeException(SerializationInfo info, StreamingContext context)
         : base(info, context)
     {
@@ -28,6 +31,7 @@ public class UnsupportedResizeModeException : VideoException
         Width = GetNInt(info, nameof(Width));
         Height = GetNInt(info, nameof(Height));
     }
+#endif
 
     public UnsupportedResizeModeException(string resizeMode, int? width, int? height, string description)
         : base(ErrorCodes.UnsupportedResizeMode, description)
@@ -45,6 +49,7 @@ public class UnsupportedResizeModeException : VideoException
         Height = height;
     }
 
+#if !NET8_0_OR_GREATER
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
         base.GetObjectData(info, context);
@@ -52,4 +57,5 @@ public class UnsupportedResizeModeException : VideoException
         info.AddValue(nameof(Width), Width ?? -1);
         info.AddValue(nameof(Height), Height ?? -1);
     }
+#endif
 }

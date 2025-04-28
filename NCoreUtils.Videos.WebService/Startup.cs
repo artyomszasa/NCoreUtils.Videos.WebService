@@ -3,8 +3,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCoreUtils.Resources;
+using NCoreUtils.Videos.WebService;
 
-namespace NCoreUtils.Videos.WebService
+namespace NCoreUtils.Videos
 {
     public class Startup : CoreStartup
     {

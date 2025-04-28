@@ -5,6 +5,8 @@ namespace NCoreUtils.Videos;
 
 public class ResizeOptions : ISpanExactEmplaceable
 {
+    public static IEmplacer<ResizeOptions> Emplacer { get; } = new SpanEmplaceableEmplacer<ResizeOptions>();
+
     /// <summary>
     /// Desired output audio type. Defaults to the input audio type when not set.
     /// </summary>
