@@ -10,6 +10,7 @@ var startup = new Startup(configuration);
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWebApplication()
     .ConfigureServices((_, services) => startup.ConfigureServices(services))
     .Build();
 

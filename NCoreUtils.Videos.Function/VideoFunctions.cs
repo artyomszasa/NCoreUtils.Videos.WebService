@@ -40,6 +40,8 @@ public class VideoFunctions
     {
         try
         {
+            var contentType = request.Headers.TryGetValues("Content-Type", out var values) ? values.FirstOrDefault() : default;
+            Logger.LogInformation("Starting resize request [Length = {ContentLength}, Type = {ContentType}].", request.Body.Length, contentType);
             await CoreFunctions
                 .InvokeResize(request, ResourceFactory, VideoResizer, request.FunctionContext.CancellationToken)
                 .ConfigureAwait(false);
@@ -57,6 +59,8 @@ public class VideoFunctions
     {
         try
         {
+            var contentType = request.Headers.TryGetValues("Content-Type", out var values) ? values.FirstOrDefault() : default;
+            Logger.LogInformation("Starting analyze request [Length = {ContentLength}, Type = {ContentType}].", request.Body.Length, contentType);
             return await CoreFunctions
                 .InvokeAnalyze(request, ResourceFactory, VideoAnalyzer, request.FunctionContext.CancellationToken)
                 .ConfigureAwait(false);
