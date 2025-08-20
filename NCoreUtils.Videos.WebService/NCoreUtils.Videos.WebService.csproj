@@ -15,19 +15,34 @@
     <EnableGoogleCloudStorage Condition=" '$(EnableGoogleCloudStorage)' == '' ">true</EnableGoogleCloudStorage>
     <EnableAzureBlobStorage Condition=" '$(EnableAzureBlobStorage)' == '' ">true</EnableAzureBlobStorage>
     <EnableLocalStorage Condition=" '$(EnableLocalStorage)' == '' ">true</EnableLocalStorage>
+    <GoogleCloudStorageCredentialsType
+      Condition=" '$(EnableGoogleCloudStorage)' == 'true' And '$(GoogleCloudStorageCredentialsType)' == '' "
+    >MetadataServer</GoogleCloudStorageCredentialsType>
     <DefineConstants Condition=" '$(EnableGoogleCloudStorage)' == 'true' ">$(DefineConstants);EnableGoogleCloudStorage</DefineConstants>
     <DefineConstants Condition=" '$(EnableAzureBlobStorage)' == 'true' ">$(DefineConstants);EnableAzureBlobStorage</DefineConstants>
     <DefineConstants Condition=" '$(EnableLocalStorage)' == 'true' ">$(DefineConstants);EnableLocalStorage</DefineConstants>
     <DefineConstants Condition=" '$(EnableGoogleFluentdLogging)' == 'true' ">$(DefineConstants);EnableGoogleFluentdLogging</DefineConstants>
+    <DefineConstants Condition=" '$(GoogleCloudStorageCredentialsType)' == 'MetadataServer' ">$(DefineConstants);EnableGoogleMetadataServer</DefineConstants>
   </PropertyGroup>
+  <!--
   <ItemGroup>
     <TrimmerRootDescriptor Include="NCoreUtils.Videos.WebService.trim.xml" />
   </ItemGroup>
+  -->
   <ItemGroup>
     <ProjectReference Include="..\NCoreUtils.Videos.WebService.Core\NCoreUtils.Videos.WebService.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NCoreUtils.Extensions.Google.Cloud.Storage.ServiceAccount" Version="8.1.6" />
+    <PackageReference
+      Include="NCoreUtils.Extensions.Google.Cloud.Storage.ServiceAccount"
+      Version="8.1.6"
+      Condition=" '$(GoogleCloudStorageCredentialsType)' == 'ServiceAccount' "
+    />
+    <PackageReference
+      Include="NCoreUtils.Extensions.Google.Cloud.Storage.MetadataServer"
+      Version="8.1.6-rc01"
+      Condition=" '$(GoogleCloudStorageCredentialsType)' == 'MetadataServer' "
+    />
     <PackageReference Include="NCoreUtils.Resources.Google.Cloud.Storage" Version="8.1.1" Condition=" '$(EnableGoogleCloudStorage)' == 'true' " />
     <PackageReference Include="NCoreUtils.Resources.Azure.Blob" Version="8.0.1" Condition=" '$(EnableAzureBlobStorage)' == 'true' " />
     <PackageReference Include="NCoreUtils.Resources.FileSystem" Version="8.0.1" Condition=" '$(EnableLocalStorage)' == 'true' " />
