@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0;netstandard2.1</TargetFrameworks>
+    <!-- <TargetFrameworks>net8.0;net6.0;netstandard2.1</TargetFrameworks> -->
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <RootNamespace>NCoreUtils</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NCoreUtils.Videos.WebService.Shared\NCoreUtils.Videos.WebService.Shared.csproj" />
@@ -8,10 +10,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(FxNugetVersion)" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="$(FxNugetVersion)" />
-    <PackageReference Include="NCoreUtils.Extensions.Collections" Version="3.0.0" />
-    <PackageReference Include="NCoreUtils.IO" Version="7.0.0" />
+    <PackageReference Include="NCoreUtils.Extensions.Collections" Version="8.0.0" />
+    <PackageReference Include="NCoreUtils.IO" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard2.1' ">
-    <PackageReference Include="NCoreUtils.Extensions.Memory.Uri" Version="7.0.0" />
+    <PackageReference Include="NCoreUtils.Extensions.Memory.Uri" Version="8.0.0" />
   </ItemGroup>
 </Project>
