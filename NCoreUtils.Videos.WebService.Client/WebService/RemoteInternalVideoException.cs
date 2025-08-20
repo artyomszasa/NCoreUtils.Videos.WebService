@@ -3,16 +3,14 @@ using System.Runtime.Serialization;
 
 namespace NCoreUtils.Videos.WebService;
 
+#if !NET8_0_OR_GREATER
 [Serializable]
+#endif
 public class RemoteInternalVideoException : InternalVideoException, IRemoteVideoException
 {
     public string EndPoint { get; }
 
     public override string Message => $"{base.Message} [EndPoint = {EndPoint}]";
-
-    protected RemoteInternalVideoException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-        => EndPoint = info.GetString(nameof(EndPoint)) ?? string.Empty;
 
     public RemoteInternalVideoException(string endpoint, string internalCode, string description)
         : base(internalCode, description)
@@ -22,9 +20,16 @@ public class RemoteInternalVideoException : InternalVideoException, IRemoteVideo
         : base(internalCode, description, innerException)
         => EndPoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
 
+#if !NET8_0_OR_GREATER
+
+    protected RemoteInternalVideoException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+        => EndPoint = info.GetString(nameof(EndPoint)) ?? string.Empty;
+
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
         base.GetObjectData(info, context);
         info.AddValue(nameof(EndPoint), EndPoint);
     }
+#endif
 }

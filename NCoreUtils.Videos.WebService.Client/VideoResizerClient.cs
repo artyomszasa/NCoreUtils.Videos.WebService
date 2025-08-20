@@ -134,6 +134,7 @@ public partial class VideoResizerClient : VideosClient, IVideoResizer
                         await using var bufferStream = new MemoryStream();
                         await input.CopyToAsync(bufferStream, 16 * 1024, cancellationToken).ConfigureAwait(false);
                         content = new ByteArrayContent(bufferStream.ToArray());
+                        content.Headers.ContentType = JsonStreamContent.ApplicationJson;
                     }
                     else
                     {

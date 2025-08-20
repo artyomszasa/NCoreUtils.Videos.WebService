@@ -4,14 +4,12 @@ using System.Runtime.Serialization;
 
 namespace NCoreUtils.Videos.WebService;
 
+#if !NET8_0_OR_GREATER
 [Serializable]
+#endif
 public class RemoteVideoConnectivityException : RemoteVideoException
 {
     public SocketError SocketError { get; }
-
-    protected RemoteVideoConnectivityException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-        => SocketError = (SocketError)info.GetInt32(nameof(SocketError));
 
     public RemoteVideoConnectivityException(
         string endpoint,
@@ -28,9 +26,17 @@ public class RemoteVideoConnectivityException : RemoteVideoException
         : base(endpoint, RemoteErrorCodes.ConnectivityError, description)
         => SocketError = socketError;
 
+#if !NET8_0_OR_GREATER
+
+    protected RemoteVideoConnectivityException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+        => SocketError = (SocketError)info.GetInt32(nameof(SocketError));
+
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
         base.GetObjectData(info, context);
         info.AddValue(nameof(SocketError), (int)SocketError);
     }
+
+#endif
 }

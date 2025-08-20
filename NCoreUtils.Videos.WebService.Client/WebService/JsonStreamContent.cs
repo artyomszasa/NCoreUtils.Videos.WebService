@@ -3,9 +3,7 @@ using System.Net.Http.Headers;
 
 namespace NCoreUtils.Videos.WebService;
 
-internal class JsonStreamContent : TypedStreamContent
+public class JsonStreamContent(Stream stream) : TypedStreamContent(stream, ApplicationJson)
 {
     public static MediaTypeHeaderValue ApplicationJson { get; } = MediaTypeHeaderValue.Parse("application/json");
-
-    public JsonStreamContent(Stream stream) : base(stream, ApplicationJson) { }
 }

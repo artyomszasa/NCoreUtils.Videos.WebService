@@ -4,14 +4,12 @@ using System.Runtime.Serialization;
 
 namespace NCoreUtils.Videos.WebService;
 
+#if !NET8_0_OR_GREATER
 [Serializable]
+#endif
 public class RemoteVideoCommunicationException : RemoteVideoException
 {
     public HttpStatusCode HttpStatusCode { get; }
-
-    protected RemoteVideoCommunicationException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-        => HttpStatusCode = (HttpStatusCode)info.GetInt32(nameof(HttpStatusCode));
 
     public RemoteVideoCommunicationException(
         string endpoint,
@@ -28,9 +26,17 @@ public class RemoteVideoCommunicationException : RemoteVideoException
         : base(endpoint, RemoteErrorCodes.CommunicationError, description)
         => HttpStatusCode = httpStatusCode;
 
+#if !NET8_0_OR_GREATER
+
+    protected RemoteVideoCommunicationException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+        => HttpStatusCode = (HttpStatusCode)info.GetInt32(nameof(HttpStatusCode));
+
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
         base.GetObjectData(info, context);
         info.AddValue(nameof(HttpStatusCode), (int)HttpStatusCode);
     }
+
+#endif
 }

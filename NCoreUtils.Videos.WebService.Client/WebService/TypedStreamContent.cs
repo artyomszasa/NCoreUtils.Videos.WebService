@@ -5,7 +5,7 @@ using System.Net.Http.Headers;
 
 namespace NCoreUtils.Videos.WebService;
 
-internal class TypedStreamContent : StreamContent
+public class TypedStreamContent : StreamContent
 {
     public TypedStreamContent(Stream stream, MediaTypeHeaderValue contentType)
         : base(stream)

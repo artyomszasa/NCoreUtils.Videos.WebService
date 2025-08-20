@@ -2,7 +2,7 @@ using System;
 
 namespace NCoreUtils.Videos.WebService;
 
-internal static class UriBuilderExtensions
+public static class UriBuilderExtensions
 {
     public static UriBuilder AppendPathSegment(this UriBuilder builder, string segment)
     {
