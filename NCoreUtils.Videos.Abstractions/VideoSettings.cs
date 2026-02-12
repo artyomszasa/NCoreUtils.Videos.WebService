@@ -92,6 +92,9 @@ public abstract class VideoSettings
 
     public string Codec { get; }
 
+    /// <summary>
+    /// Bitrate in b/s
+    /// </summary>
     public long? BitRate { get; }
 
     public string? PixelFormat { get; }

@@ -21,20 +21,20 @@ internal class Program
                 .AddFilter("FFMpeg", LogLevel.Debug)
                 .AddSimpleConsole(o => o.SingleLine = true)
             )
-            .AddGoogleCloudStorageUtils()
+            // .AddGoogleCloudStorageUtils()
             .AddFFMpegVideoResizer()
             .BuildServiceProvider(true);
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         AVLogging.SetLogger(loggerFactory);
         var resizer = serviceProvider.GetRequiredService<IVideoResizer>();
-        var gutils = serviceProvider.GetRequiredService<GoogleCloudStorageUtils>();
-        var source = new FileSystemResource("/home/artyom/Letöltések/sample-video.mp4", default);
+        // var gutils = serviceProvider.GetRequiredService<GoogleCloudStorageUtils>();
+        var source = new FileSystemResource("/tmp/v/magyar-talalmanyok-webre-v1.mp4", default);
         // var source = new GoogleCloudStorageResource(
         //     gutils,
         //     "skapeio",
         //     "sample-1.5m.mp4"
         // );
-        var destination = new FileSystemResource("/tmp/out.jpg", default);
+        var destination = new FileSystemResource("/tmp/v/out.mp4", default);
         // var destination = new GoogleCloudStorageResource(
         //     gutils,
         //     "skapeio",
@@ -43,21 +43,22 @@ internal class Program
         //     cacheControl: default,
         //     isPublic: false
         // );
-        // resizer.ResizeAsync(
-        //     source,
-        //     destination,
-        //     new ResizeOptions(
-        //         audioType: "none",
-        //         videoType: new X264Settings(default, default, "ultrafast"),
-        //         resizeMode: "exact",
-        //         width: 420
-        //     )
-        // ).AsTask().GetAwaiter().GetResult();
-        resizer.CreateThumbnailAsync(
+        resizer.ResizeAsync(
             source,
             destination,
-            new ResizeOptions(),
-            default
-        ).GetAwaiter().GetResult();
+            new ResizeOptions(
+                audioType: "copy",
+                videoType: new X264Settings(bitRate: 1_500_000, pixelFormat: default, preset: "veryslow"),
+                resizeMode: "exact",
+                height: 720,
+                quality: 34
+            )
+        ).AsTask().GetAwaiter().GetResult();
+        // resizer.CreateThumbnailAsync(
+        //     source,
+        //     destination,
+        //     new ResizeOptions(),
+        //     default
+        // ).GetAwaiter().GetResult();
     }
 }

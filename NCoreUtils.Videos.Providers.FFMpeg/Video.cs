@@ -190,15 +190,20 @@ public sealed class Video : IVideo
             if (settings.BitRate is long bitRate)
             {
                 encoderContext.BitRate = bitRate;
+                encoderContext.RcMaxRate = bitRate;
+                encoderContext.RcBufferSize = 8 * 1024 * 1024;
+            }
+            else
+            {
+                // CRF --> 0 (best) - 51 (worst)
+                var crf = (int)Math.Round((100.0 - (double)Math.Min(100, Math.Max(0, quality))) / 100.0 * 51.0);
+                encoderContext.SetOption("crf", crf);
             }
             if (!string.IsNullOrEmpty(settings.Preset))
             {
                 encoderContext.SetOption("preset", settings.Preset);
             }
         }
-        // CRF --> 0 (best) - 51 (worst)
-        var crf = (int)Math.Round((100.0 - (double)Math.Min(100, Math.Max(0, quality))) / 100.0 * 51.0);
-        encoderContext.SetOption("crf", crf);
         return encoderContext;
     }
 
@@ -293,6 +298,8 @@ public sealed class Video : IVideo
         return encoderContext;
     }
 
+
+
     private TransformationInfo InitializeAudioTransformation(
         int inStreamIndex,
         bool hasVideo)
@@ -335,6 +342,18 @@ public sealed class Video : IVideo
         );
     }
 
+    class CopySink(OutputWriter writer) : IConsumer<AVPacket>
+    {
+        public void Consume(AVPacket item)
+        {
+            writer.Consume(item);
+        }
+
+        public void Dispose() { /* noop */  }
+
+        public void Flush() { /* noop */ }
+    }
+
     public void WriteTo(
         Stream stream,
         IReadOnlyList<VideoTransformation> transformations,
@@ -373,6 +392,7 @@ public sealed class Video : IVideo
         {
             var inStream = InCtx.Streams[at0.InStreamIndex];
             var outStream = outCtx.NewStream(at0.EncoderContext);
+            outStream.CopyCodecParametersFrom(inStream.CodecParameters);
             outStream.Duration = inStream.Duration;
             outStream.TimeBase = inStream.TimeBase;
             outStream.StartTime = inStream.StartTime;
@@ -381,7 +401,6 @@ public sealed class Video : IVideo
         // INPUT -> DEMUXER -> (DECODER -> GRAPH? -> ENCODER)+ -> MUXER -> OUTPUT
         // OUTPUT WRITER **********************************************************************************************
         // NOTE: disposed by the Muxer
-        var outStream0 = outCtx.Streams[0];
         var outputWriter = new OutputWriter(
             outCtx: outCtx,
             sourceTimeBases: new Dictionary<int, AVRational> { v, a }
@@ -391,19 +410,21 @@ public sealed class Video : IVideo
         var muxer = new Muxer(outputWriter);
         // VIDEO *******************************************************************************************************
         // NOTE: disposed by Demuxer
-        var videoDecoder = v is TransformationInfo vt
+        var videoPipeline = v is TransformationInfo vt
             ? CreateTransformation(vt, muxer)
             : default;
         // AUDIO *******************************************************************************************************
         // NOTE: disposed by Demuxer
-        var audioDecoder = a is TransformationInfo at
-            ? CreateTransformation(at, muxer)
+        IConsumer<AVPacket>? audioPipeline = a is TransformationInfo at
+            ? audioType == "copy"
+                ? new CopySink(outputWriter)
+                : CreateTransformation(at, muxer)
             : default;
         // DEMUXER *****************************************************************************************************
         using var demuxer = new Demuxer(new Dictionary<int, IConsumer<AVPacket>>
         {
-            { v?.InStreamIndex, videoDecoder },
-            { a?.InStreamIndex, audioDecoder },
+            { v?.InStreamIndex, videoPipeline },
+            { a?.InStreamIndex, audioPipeline },
         });
         // EXECUTE PIPELINE ********************************************************************************************
         cancellationToken.ThrowIfCancellationRequested();
