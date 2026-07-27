@@ -1,8 +1,6 @@
-using System.Text;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Web;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -13,6 +11,38 @@ using Microsoft.Extensions.Primitives;
 using NCoreUtils.Videos.WebService;
 
 namespace NCoreUtils.Videos.Function;
+
+#pragma warning disable SYSLIB0051 // Type or member is obsolete
+#pragma warning disable CS0672 // Member overrides obsolete member
+
+[Serializable]
+public class VideoProcessingException : Exception
+{
+    public string? JsonData { get; }
+
+    protected VideoProcessingException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+        => JsonData = info.GetString(nameof(JsonData));
+
+    public VideoProcessingException() : base("Video processing failed.") { }
+
+    public VideoProcessingException(string message) : base(message) { }
+
+    public VideoProcessingException(string message, Exception innerException) : base(message, innerException) { }
+
+    public VideoProcessingException(string message, string jsonData)
+        : base(message)
+        => JsonData = jsonData;
+
+    public override void GetObjectData(SerializationInfo info, StreamingContext context)
+    {
+        base.GetObjectData(info, context);
+        info.AddValue(nameof(JsonData), JsonData);
+    }
+}
+
+#pragma warning restore CS0672 // Member overrides obsolete member
+#pragma warning restore SYSLIB0051 // Type or member is obsolete
 
 internal sealed class FakeRequest(string body, IReadOnlyDictionary<string, StringValues> query) : Generic.IHttpRequest
 {
@@ -146,11 +176,23 @@ public class VideoFunctions(ILogger<VideoFunctions> logger, IResourceFactory res
     {
         var requestData = JsonSerializer.Deserialize(serializedRequest, SerializedRequestSerializerContext.Default.SerializedRequest)
             ?? throw new InvalidOperationException("Could not deserialize request.");
-        var query = QueryHelpers.ParseQuery(requestData.Query);
-        var request = new FakeRequest(requestData.Body, query);
-        await CoreFunctions
-            .InvokeResize(request, ResourceFactory, VideoResizer, functionContext.CancellationToken)
-            .ConfigureAwait(false);
+        try
+        {
+            var query = QueryHelpers.ParseQuery(requestData.Query);
+            var request = new FakeRequest(requestData.Body, query);
+            await CoreFunctions
+                .InvokeResize(request, ResourceFactory, VideoResizer, functionContext.CancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (VideoException exn)
+        {
+            Logger.LogError(exn, "Video processing failed.");
+            var data = Generic.ExceptionHelper.GetErrorData(exn);
+            throw new VideoProcessingException(
+                "Video processing failed.",
+                ErrorSerialization.SerializeVideoErrorData(data)
+            );
+        }
     }
 
     [Function("ScheduleResize")]

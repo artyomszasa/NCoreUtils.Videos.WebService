@@ -11,4 +11,7 @@ public static class ErrorSerialization
 
     public static Task SerializeVideoErrorDataAsync(System.IO.Stream stream, VideoErrorData data, CancellationToken cancellationToken)
         => JsonSerializer.SerializeAsync(stream, data, VideoErrorSerializerContext.Default.VideoErrorData, cancellationToken);
+
+    public static string SerializeVideoErrorData(VideoErrorData data)
+        => JsonSerializer.Serialize(data, VideoErrorSerializerContext.Default.VideoErrorData);
 }
