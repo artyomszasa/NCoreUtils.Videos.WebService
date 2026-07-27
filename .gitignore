@@ -1,6 +1,7 @@
 .vs
 .vscode
 .ionide
+*.csproj.lscache
 
 NCoreUtils*/obj
 NCoreUtils*/bin
