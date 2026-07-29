@@ -1,9 +1,17 @@
+using System.Runtime.ExceptionServices;
+using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 using NCoreUtils.FFMpeg;
 using NCoreUtils.Videos.Internal;
 
 namespace NCoreUtils.Videos.FFMpeg;
 
-public sealed class Video : IVideo
+public sealed class Video(
+    ILogger<Video> logger,
+    AVFormatInputContext inCtx,
+    int? videoStreamIndex,
+    int? audioStreamIndex,
+    bool singleThread) : IVideo
 {
     internal readonly struct GraphConfiguration
     {
@@ -52,16 +60,22 @@ public sealed class Video : IVideo
         }
     }
 
+    private const int MaxPendingPackets = 32;
+
     private static AVPixelFormat ParseVideoPixelFormatSetting(string? name)
         => AVPixelFormatDescriptor.TryParsePixelFormat(name, out var pixelFormat)
             ? pixelFormat
             : AVPixelFormat.AV_PIX_FMT_YUV420P;
 
-    public AVFormatInputContext InCtx { get; }
+    public ILogger<Video> Logger { get; } = logger;
 
-    public int? VideoStreamIndex { get; }
+    public AVFormatInputContext InCtx { get; } = inCtx;
 
-    public int? AudioStreamIndex { get; }
+    public int? VideoStreamIndex { get; } = videoStreamIndex;
+
+    public int? AudioStreamIndex { get; } = audioStreamIndex;
+
+    public bool SingleThread { get; } = singleThread;
 
     public Size Size
     {
@@ -86,16 +100,6 @@ public sealed class Video : IVideo
     public string? AudioCodec => AudioStreamIndex is int index
         ? AVCodec.FindDecoder(InCtx.Streams[index].CodecId).Name ?? string.Empty
         : default;
-
-    public Video(
-        AVFormatInputContext inCtx,
-        int? videoStreamIndex,
-        int? audioStreamIndex)
-    {
-        InCtx = inCtx;
-        VideoStreamIndex = videoStreamIndex;
-        AudioStreamIndex = audioStreamIndex;
-    }
 
     public ValueTask DisposeAsync()
         => InCtx.DisposeAsync();
@@ -287,7 +291,7 @@ public sealed class Video : IVideo
         );
     }
 
-    private AVCodecContext InitializeAudioEncoderContext(AVStreamView inStream)
+    private static AVCodecContext InitializeAudioEncoderContext(AVStreamView inStream)
     {
         var encoderContext = AVCodecContext.CreateEncoderContext("aac");
         encoderContext.TimeBase = inStream.TimeBase;
@@ -298,8 +302,6 @@ public sealed class Video : IVideo
         return encoderContext;
     }
 
-
-
     private TransformationInfo InitializeAudioTransformation(
         int inStreamIndex,
         bool hasVideo)
@@ -309,9 +311,11 @@ public sealed class Video : IVideo
         // AUDIO DECODER CONTEXT ***************************************************************************************
         // NOTE: disposed by Decoder
         var decoderContext = AVCodecContext.CreateDecoderContext(inStream);
+        Logger.LogAudioCodecContextInitialized("decode", decoderContext);
         // AUDIO ENCODER CONTEXT ***************************************************************************************
         // NOTE: disposed by the Encoder
         var encoderContext = InitializeAudioEncoderContext(inStream);
+        Logger.LogAudioCodecContextInitialized("encode", encoderContext);
         // CREATE TRANSFORMATION ***************************************************************************************
         return new TransformationInfo(
             inStreamIndex: inStreamIndex,
@@ -342,10 +346,11 @@ public sealed class Video : IVideo
         );
     }
 
-    class CopySink(OutputWriter writer) : IConsumer<AVPacket>
+    class CopySink(OutputWriter writer, int mappedStreamIndex) : IConsumer<AVPacket>
     {
         public void Consume(AVPacket item)
         {
+            item.StreamIndex = mappedStreamIndex;
             writer.Consume(item);
         }
 
@@ -354,7 +359,7 @@ public sealed class Video : IVideo
         public void Flush() { /* noop */ }
     }
 
-    public void WriteTo(
+    public async ValueTask WriteToAsync(
         Stream stream,
         IReadOnlyList<VideoTransformation> transformations,
         VideoSettings? videoSettings,
@@ -376,26 +381,14 @@ public sealed class Video : IVideo
             format: AVOutputFormat.Guess(filename: "out.mp4"),
             outputStream: stream
         );
+        var streamIndexMapping = new Dictionary<int, int>();
         if (v is TransformationInfo vt0)
         {
-            if (outCtx.Flags.HasFlag(AVFormatFlags.AVFMT_GLOBALHEADER))
-            {
-                vt0.EncoderContext.Flags |= AVCodecFlags.AV_CODEC_FLAG_GLOBAL_HEADER;
-            }
-            var inStream = InCtx.Streams[vt0.InStreamIndex];
-            var outStream = outCtx.NewStream(vt0.EncoderContext);
-            outStream.Duration = inStream.Duration;
-            outStream.TimeBase = vt0.EncoderContext.TimeBase;
-            outStream.StartTime = inStream.StartTime;
+            ApplyVideoTransformation(InCtx, outCtx, vt0);
         }
         if (a is TransformationInfo at0)
         {
-            var inStream = InCtx.Streams[at0.InStreamIndex];
-            var outStream = outCtx.NewStream(at0.EncoderContext);
-            outStream.CopyCodecParametersFrom(inStream.CodecParameters);
-            outStream.Duration = inStream.Duration;
-            outStream.TimeBase = inStream.TimeBase;
-            outStream.StartTime = inStream.StartTime;
+            ApplyAudioTransformation(InCtx, outCtx, at0);
         }
         // BUILD PIPELINE **********************************************************************************************
         // INPUT -> DEMUXER -> (DECODER -> GRAPH? -> ENCODER)+ -> MUXER -> OUTPUT
@@ -417,7 +410,7 @@ public sealed class Video : IVideo
         // NOTE: disposed by Demuxer
         IConsumer<AVPacket>? audioPipeline = a is TransformationInfo at
             ? audioType == "copy"
-                ? new CopySink(outputWriter)
+                ? new CopySink(outputWriter, at.OutStreamIndex)
                 : CreateTransformation(at, muxer)
             : default;
         // DEMUXER *****************************************************************************************************
@@ -428,37 +421,151 @@ public sealed class Video : IVideo
         });
         // EXECUTE PIPELINE ********************************************************************************************
         cancellationToken.ThrowIfCancellationRequested();
-        using var packet = AVPacket.CreatePacket();
-        while (InCtx.ReadFrame(packet))
+        if (SingleThread)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            demuxer.Consume(packet);
-            packet.Unref();
+            using var packet = AVPacket.CreatePacket();
+            while (InCtx.ReadFrame(packet))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                demuxer.Consume(packet);
+                packet.Unref();
+            }
+        }
+        else
+        {
+            var queue = Channel.CreateBounded<AVPacket>(new BoundedChannelOptions(MaxPendingPackets)
+            {
+                AllowSynchronousContinuations = false,
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = true,
+                SingleWriter = true
+            });
+
+            ExceptionDispatchInfo? error = default;
+            using var onErrorCancellation = new CancellationTokenSource();
+            using var compositeCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                onErrorCancellation.Token
+            );
+            var producer = ProduceAsync(Logger, InCtx, queue.Writer, compositeCancellation.Token);
+            await ConsumeAsync(
+                logger: Logger,
+                consumer: demuxer,
+                reader: queue.Reader,
+                notifyFailure: err =>
+                {
+                    error = err;
+                    onErrorCancellation.Cancel(throwOnFirstException: false);
+                },
+                cancellationToken
+            ).ConfigureAwait(false);
+            await producer.ConfigureAwait(false);
+            if (error is ExceptionDispatchInfo err)
+            {
+                err.Throw();
+            }
+
+            static async Task ProduceAsync(ILogger logger, AVFormatInputContext inCtx, ChannelWriter<AVPacket> writer, CancellationToken cancellationToken)
+            {
+                Exception? error = default;
+                bool shouldStop = false;
+                do
+                {
+                    var packet = AVPacket.CreatePacket();
+                    try
+                    {
+                        var hasNextFrame = inCtx.ReadFrame(packet);
+                        if (hasNextFrame)
+                        {
+                            while (!writer.TryWrite(packet))
+                            {
+                                await writer.WaitToWriteAsync(cancellationToken).ConfigureAwait(false);
+                            }
+                        }
+                        else
+                        {
+                            logger.LogPipelineDoneReadingNoMoreFrames();
+                            shouldStop = true;
+                        }
+                    }
+                    catch (Exception exn)
+                    {
+                        shouldStop = true;
+                        if (exn is not OperationCanceledException)
+                        {
+                            logger.LogPipelineReadingFailed(exn);
+                            error = exn;
+                        }
+                        else
+                        {
+                            logger.LogPipelineReadingCancelled();
+                        }
+                        await packet.DisposeAsync().ConfigureAwait(false);
+                    }
+                }
+                while (!shouldStop);
+                writer.TryComplete();
+            }
+
+            static async Task ConsumeAsync(ILogger logger, Demuxer consumer, ChannelReader<AVPacket> reader, Action<ExceptionDispatchInfo> notifyFailure, CancellationToken cancellationToken)
+            {
+                bool failed = false;
+                await foreach (var packet in reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
+                {
+                    if (!(failed || cancellationToken.IsCancellationRequested))
+                    {
+                        try
+                        {
+                            consumer.Consume(packet);
+                        }
+                        catch (Exception exn)
+                        {
+                            if (exn is not OperationCanceledException)
+                            {
+                                logger.LogPipelineWritingFailed(exn);
+                                // NOTE: on processing exception we notify the invoker about the failure to cancel further
+                                // reading but we still have to unref all the packets that are already queued!
+                                notifyFailure(ExceptionDispatchInfo.Capture(exn));
+                            }
+                        }
+                    }
+                    packet.Unref();
+                    await packet.DisposeAsync().ConfigureAwait(false);
+                }
+            }
         }
         // FLUSH BUFFERS ***********************************************************************************************
         demuxer.Flush();
         stream.Flush();
-    }
 
-    public ValueTask WriteToAsync(
-        Stream stream,
-        IReadOnlyList<VideoTransformation> transformations,
-        VideoSettings? videoSettings,
-        string? audioType,
-        int quality = 85,
-        bool optimize = true,
-        CancellationToken cancellationToken = default)
-    {
-        WriteTo(
-            stream,
-            transformations,
-            videoSettings,
-            audioType,
-            quality,
-            optimize,
-            cancellationToken
-        );
-        return default;
+        static void ApplyVideoTransformation(
+            AVFormatInputContext inCtx,
+            AVFormatOutputContext outCtx,
+            TransformationInfo transformationInfo)
+        {
+            if (outCtx.Flags.HasFlag(AVFormatFlags.AVFMT_GLOBALHEADER))
+            {
+                transformationInfo.EncoderContext.Flags |= AVCodecFlags.AV_CODEC_FLAG_GLOBAL_HEADER;
+            }
+            var inStream = inCtx.Streams[transformationInfo.InStreamIndex];
+            var outStream = outCtx.NewStream(transformationInfo.EncoderContext);
+            outStream.Duration = inStream.Duration;
+            outStream.TimeBase = transformationInfo.EncoderContext.TimeBase;
+            outStream.StartTime = inStream.StartTime;
+        }
+
+        static void ApplyAudioTransformation(
+            AVFormatInputContext inCtx,
+            AVFormatOutputContext outCtx,
+            TransformationInfo transformationInfo)
+        {
+            var inStream = inCtx.Streams[transformationInfo.InStreamIndex];
+            var outStream = outCtx.NewStream(transformationInfo.EncoderContext);
+            outStream.CopyCodecParametersFrom(inStream.CodecParameters);
+            outStream.Duration = inStream.Duration;
+            outStream.TimeBase = inStream.TimeBase;
+            outStream.StartTime = inStream.StartTime;
+        }
     }
 
     private GraphConfiguration InitializeThumbnailGraph(

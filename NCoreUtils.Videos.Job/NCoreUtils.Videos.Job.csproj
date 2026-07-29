@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>NCoreUtils.Videos</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <EnableGoogleCloudStorage Condition=" '$(EnableGoogleCloudStorage)' == '' ">true</EnableGoogleCloudStorage>
+    <EnableAzureBlobStorage Condition=" '$(EnableAzureBlobStorage)' == '' ">true</EnableAzureBlobStorage>
+    <GoogleCloudStorageCredentialsType
+      Condition=" '$(EnableGoogleCloudStorage)' == 'true' And '$(GoogleCloudStorageCredentialsType)' == '' "
+    >MetadataServer</GoogleCloudStorageCredentialsType>
+    <!--
+    <GoogleCloudStorageCredentialsType
+      Condition=" '$(EnableGoogleCloudStorage)' == 'true' And '$(GoogleCloudStorageCredentialsType)' == '' "
+    >ServiceAccount</GoogleCloudStorageCredentialsType>
+    -->
+    <DefineConstants Condition=" '$(EnableGoogleCloudStorage)' == 'true' ">$(DefineConstants);EnableGoogleCloudStorage</DefineConstants>
+    <DefineConstants Condition=" '$(EnableAzureBlobStorage)' == 'true' ">$(DefineConstants);EnableAzureBlobStorage</DefineConstants>
+    <DefineConstants Condition=" '$(EnableGoogleFluentdLogging)' == 'true' ">$(DefineConstants);EnableGoogleFluentdLogging</DefineConstants>
+    <DefineConstants Condition=" '$(GoogleCloudStorageCredentialsType)' == 'MetadataServer' ">$(DefineConstants);EnableGoogleMetadataServer</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NCoreUtils.Videos.FFMpeg\NCoreUtils.Videos.FFMpeg.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="8.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference
+      Include="NCoreUtils.Extensions.Google.Cloud.Storage.ServiceAccount"
+      Version="8.1.6"
+      Condition=" '$(GoogleCloudStorageCredentialsType)' == 'ServiceAccount' "
+    />
+    <PackageReference
+      Include="NCoreUtils.Extensions.Google.Cloud.Storage.MetadataServer"
+      Version="8.1.6-rc01"
+      Condition=" '$(GoogleCloudStorageCredentialsType)' == 'MetadataServer' "
+    />
+    <PackageReference Include="NCoreUtils.Resources.Google.Cloud.Storage" Version="8.1.1" Condition=" '$(EnableGoogleCloudStorage)' == 'true' " />
+    <PackageReference Include="NCoreUtils.Resources.Azure.Blob" Version="8.0.1" Condition=" '$(EnableAzureBlobStorage)' == 'true' " />
+    <PackageReference Include="NCoreUtils.Resources.FileSystem" Version="8.0.1" Condition=" '$(EnableLocalStorage)' == 'true' " />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(EnableGoogleFluentdLogging)' == 'true' ">
+    <PackageReference Include="NCoreUtils.Logging" Version="8.1.0-rc00" />
+    <PackageReference Include="NCoreUtils.Logging.Google.Fluentd" Version="8.1.0-rc00" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(EnableGoogleFluentdLogging)' != 'true' ">
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+  </ItemGroup>
+</Project>

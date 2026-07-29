@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCoreUtils_AzVideo", "NCore
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCoreUtils.Videos.WebService.Client.AzureFunctions", "NCoreUtils.Videos.WebService.Client.AzureFunctions\NCoreUtils.Videos.WebService.Client.AzureFunctions.csproj", "{C2BB3D45-1061-4852-993F-AD6B8E6FDD40}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCoreUtils.Videos.Job", "NCoreUtils.Videos.Job\NCoreUtils.Videos.Job.csproj", "{63675D8F-D913-4B51-B203-379592DFC7ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -223,6 +225,18 @@ Global
 		{C2BB3D45-1061-4852-993F-AD6B8E6FDD40}.Release|x64.Build.0 = Release|Any CPU
 		{C2BB3D45-1061-4852-993F-AD6B8E6FDD40}.Release|x86.ActiveCfg = Release|Any CPU
 		{C2BB3D45-1061-4852-993F-AD6B8E6FDD40}.Release|x86.Build.0 = Release|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Debug|x64.Build.0 = Debug|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Debug|x86.Build.0 = Debug|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Release|x64.ActiveCfg = Release|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Release|x64.Build.0 = Release|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Release|x86.ActiveCfg = Release|Any CPU
+		{63675D8F-D913-4B51-B203-379592DFC7ED}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

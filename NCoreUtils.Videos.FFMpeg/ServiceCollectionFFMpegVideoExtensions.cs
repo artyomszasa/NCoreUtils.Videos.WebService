@@ -8,8 +8,28 @@ public static class ServiceCollectionFFMpegVideoExtensions
 {
     public static IServiceCollection AddFFMpegVideoResizer(
         this IServiceCollection services,
+        bool suppressDefaultResizers,
+        Action<ResizerCollectionBuilder>? configure)
+        => services.AddVideoResizer<VideoProvider>(suppressDefaultResizers, configure);
+
+    public static IServiceCollection AddFFMpegVideoResizer(
+        this IServiceCollection services,
+        IVideoProcessorConfiguration? configuration,
         bool suppressDefaultResizers = false,
         Action<ResizerCollectionBuilder>? configure = default)
-        => services.AddVideoResizer<VideoProvider>(suppressDefaultResizers, configure);
+        => services
+            .AddSingleton(configuration ?? VideoProcessorConfiguration.Default)
+            .AddFFMpegVideoResizer(suppressDefaultResizers, configure);
+
+    public static IServiceCollection AddFFMpegVideoResizer(
+        this IServiceCollection services,
+        bool? singleThread = default,
+        bool suppressDefaultResizers = false,
+        Action<ResizerCollectionBuilder>? configure = default)
+        => services.AddFFMpegVideoResizer(
+            new VideoProcessorConfiguration(singleThread ?? VideoProcessorConfiguration.DefaultSingleThread),
+            suppressDefaultResizers,
+            configure
+        );
 }
 
